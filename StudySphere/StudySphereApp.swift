@@ -1,17 +1,106 @@
-//
-//  StudySphereApp.swift
-//  StudySphere
-//
-//  Created by Anh Nguyen on 13/3/2026.
-//
-
+import OSLog
 import SwiftUI
+import VISOR
 
 @main
 struct StudySphereApp: App {
+
+    // MARK: Lifecycle
+
+    init() {
+        // 1. Create services
+        let profileService = LiveProfileService()
+        let multipeerService = LiveMultipeerService(profileService: profileService)
+        let nearbyInteractionService = LiveNearbyInteractionService()
+        let motionService = LiveMotionService()
+        let screenTimeService = LiveScreenTimeService()
+
+        // 2. Create interactors
+        let sessionInteractor = LiveSessionInteractor(
+            multipeerService: multipeerService,
+            nearbyInteractionService: nearbyInteractionService,
+            motionService: motionService,
+            screenTimeService: screenTimeService,
+            profileService: profileService)
+        let distractionInteractor = LiveDistractionInteractor(
+            motionService: motionService,
+            screenTimeService: screenTimeService,
+            nearbyInteractionService: nearbyInteractionService,
+            profileService: profileService)
+
+        // 3. Create root router
+        let router = Router<AppScene>(
+            level: 0,
+            identifierTab: nil,
+            logger: Logger(subsystem: "studio.cgc.StudySphere", category: "Router"))
+        router.selectedTab = .discover
+
+        // 4. Create ViewModel factories
+        let mainTabViewModelFactory = MainTabViewModel.Factory {
+            MainTabViewModel(router: router)
+        }
+        let discoverViewModelFactory: DiscoverViewModel.Factory = .routed { router in
+            DiscoverViewModel(
+                router: router,
+                multipeerService: multipeerService,
+                sessionInteractor: sessionInteractor)
+        }
+        let createSessionViewModelFactory: CreateSessionViewModel.Factory = .routed { router in
+            CreateSessionViewModel(
+                router: router,
+                sessionInteractor: sessionInteractor)
+        }
+        let activeSessionViewModelFactory: ActiveSessionViewModel.Factory = .routed { router in
+            ActiveSessionViewModel(
+                router: router,
+                sessionInteractor: sessionInteractor,
+                distractionInteractor: distractionInteractor,
+                nearbyInteractionService: nearbyInteractionService)
+        }
+        let profileViewModelFactory = ProfileViewModel.Factory {
+            ProfileViewModel(profileService: profileService)
+        }
+        let appSelectionViewModelFactory: AppSelectionViewModel.Factory = .routed { router in
+            AppSelectionViewModel(
+                router: router,
+                screenTimeService: screenTimeService)
+        }
+
+        // 5. Assign to @State properties
+        _router = State(initialValue: router)
+        _mainTabViewModelFactory = State(initialValue: mainTabViewModelFactory)
+        _discoverViewModelFactory = State(initialValue: discoverViewModelFactory)
+        _createSessionViewModelFactory = State(initialValue: createSessionViewModelFactory)
+        _activeSessionViewModelFactory = State(initialValue: activeSessionViewModelFactory)
+        _profileViewModelFactory = State(initialValue: profileViewModelFactory)
+        _appSelectionViewModelFactory = State(initialValue: appSelectionViewModelFactory)
+        _profileService = State(initialValue: profileService)
+    }
+
+    // MARK: Internal
+
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            MainTabView()
+                .environment(router)
+                .environment(mainTabViewModelFactory)
+                .environment(discoverViewModelFactory)
+                .environment(createSessionViewModelFactory)
+                .environment(activeSessionViewModelFactory)
+                .environment(profileViewModelFactory)
+                .environment(appSelectionViewModelFactory)
+                .task { profileService.load() }
         }
     }
+
+    // MARK: Private
+
+    @State private var router: Router<AppScene>
+    @State private var mainTabViewModelFactory: MainTabViewModel.Factory
+    @State private var discoverViewModelFactory: DiscoverViewModel.Factory
+    @State private var createSessionViewModelFactory: CreateSessionViewModel.Factory
+    @State private var activeSessionViewModelFactory: ActiveSessionViewModel.Factory
+    @State private var profileViewModelFactory: ProfileViewModel.Factory
+    @State private var appSelectionViewModelFactory: AppSelectionViewModel.Factory
+    @State private var profileService: LiveProfileService
 }
