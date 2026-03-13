@@ -5,11 +5,11 @@ import VISOR
 final class LiveSessionInteractor: SessionInteractor {
 
     init(
-        multipeerService: MultipeerService,
-        nearbyInteractionService: NearbyInteractionService,
-        motionService: MotionService,
-        screenTimeService: ScreenTimeService,
-        profileService: ProfileService)
+        multipeerService: any MultipeerService,
+        nearbyInteractionService: any NearbyInteractionService,
+        motionService: any MotionService,
+        screenTimeService: any ScreenTimeService,
+        profileService: any ProfileService)
     {
         self.multipeerService = multipeerService
         self.nearbyInteractionService = nearbyInteractionService
@@ -59,9 +59,9 @@ final class LiveSessionInteractor: SessionInteractor {
 
     // MARK: - Private
 
-    private let multipeerService: MultipeerService
-    private let nearbyInteractionService: NearbyInteractionService
-    private let motionService: MotionService
-    private let screenTimeService: ScreenTimeService
-    private let profileService: ProfileService
+    private let multipeerService: any MultipeerService
+    private let nearbyInteractionService: any NearbyInteractionService
+    private let motionService: any MotionService
+    private let screenTimeService: any ScreenTimeService
+    private let profileService: any ProfileService
 }

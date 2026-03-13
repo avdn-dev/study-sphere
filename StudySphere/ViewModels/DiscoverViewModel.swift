@@ -38,6 +38,6 @@ final class DiscoverViewModel {
     // MARK: - Private
 
     private let router: Router<AppScene>
-    private let multipeerService: MultipeerService
-    private let sessionInteractor: SessionInteractor
+    private let multipeerService: any MultipeerService
+    private let sessionInteractor: any SessionInteractor
 }

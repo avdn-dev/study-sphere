@@ -5,10 +5,10 @@ import VISOR
 final class LiveDistractionInteractor: DistractionInteractor {
 
     init(
-        motionService: MotionService,
-        screenTimeService: ScreenTimeService,
-        nearbyInteractionService: NearbyInteractionService,
-        profileService: ProfileService)
+        motionService: any MotionService,
+        screenTimeService: any ScreenTimeService,
+        nearbyInteractionService: any NearbyInteractionService,
+        profileService: any ProfileService)
     {
         self.motionService = motionService
         self.screenTimeService = screenTimeService
@@ -39,8 +39,8 @@ final class LiveDistractionInteractor: DistractionInteractor {
 
     // MARK: - Private
 
-    private let motionService: MotionService
-    private let screenTimeService: ScreenTimeService
-    private let nearbyInteractionService: NearbyInteractionService
-    private let profileService: ProfileService
+    private let motionService: any MotionService
+    private let screenTimeService: any ScreenTimeService
+    private let nearbyInteractionService: any NearbyInteractionService
+    private let profileService: any ProfileService
 }

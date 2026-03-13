@@ -4,7 +4,7 @@ import VISOR
 @Observable
 final class LiveMultipeerService: MultipeerService {
 
-    init(profileService: ProfileService) {
+    init(profileService: any ProfileService) {
         self.profileService = profileService
     }
 
@@ -64,5 +64,5 @@ final class LiveMultipeerService: MultipeerService {
 
     // MARK: - Private
 
-    private let profileService: ProfileService
+    private let profileService: any ProfileService
 }

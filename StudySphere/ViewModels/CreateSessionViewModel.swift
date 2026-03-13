@@ -56,5 +56,5 @@ final class CreateSessionViewModel {
     // MARK: - Private
 
     private let router: Router<AppScene>
-    private let sessionInteractor: SessionInteractor
+    private let sessionInteractor: any SessionInteractor
 }

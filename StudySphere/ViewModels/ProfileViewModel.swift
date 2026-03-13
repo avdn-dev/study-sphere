@@ -51,5 +51,5 @@ final class ProfileViewModel {
 
     // MARK: - Private
 
-    private let profileService: ProfileService
+    private let profileService: any ProfileService
 }

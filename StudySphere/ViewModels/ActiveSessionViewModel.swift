@@ -47,7 +47,7 @@ final class ActiveSessionViewModel {
     // MARK: - Private
 
     private let router: Router<AppScene>
-    private let sessionInteractor: SessionInteractor
-    private let distractionInteractor: DistractionInteractor
-    private let nearbyInteractionService: NearbyInteractionService
+    private let sessionInteractor: any SessionInteractor
+    private let distractionInteractor: any DistractionInteractor
+    private let nearbyInteractionService: any NearbyInteractionService
 }
