@@ -6,6 +6,10 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		96CFA1092F63F054009AFF34 /* VISOR in Frameworks */ = {isa = PBXBuildFile; productRef = 96CFA1082F63F054009AFF34 /* VISOR */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXFileReference section */
 		96CFA0F32F63EF8F009AFF34 /* StudySphere.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = StudySphere.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
@@ -23,6 +27,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				96CFA1092F63F054009AFF34 /* VISOR in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -65,6 +70,7 @@
 			);
 			name = StudySphere;
 			packageProductDependencies = (
+				96CFA1082F63F054009AFF34 /* VISOR */,
 			);
 			productName = StudySphere;
 			productReference = 96CFA0F32F63EF8F009AFF34 /* StudySphere.app */;
@@ -94,6 +100,9 @@
 			);
 			mainGroup = 96CFA0EA2F63EF8F009AFF34;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				96CFA1072F63F054009AFF34 /* XCRemoteSwiftPackageReference "VISOR" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 96CFA0F42F63EF8F009AFF34 /* Products */;
 			projectDirPath = "";
@@ -332,6 +341,25 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		96CFA1072F63F054009AFF34 /* XCRemoteSwiftPackageReference "VISOR" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/avdn-dev/VISOR";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 5.0.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		96CFA1082F63F054009AFF34 /* VISOR */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 96CFA1072F63F054009AFF34 /* XCRemoteSwiftPackageReference "VISOR" */;
+			productName = VISOR;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 96CFA0EB2F63EF8F009AFF34 /* Project object */;
 }
