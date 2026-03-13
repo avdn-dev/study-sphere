@@ -43,9 +43,9 @@ final class LiveSessionInteractor: SessionInteractor {
 
     // MARK: - Joiner
 
-    func joinSession(host: DiscoveredSession) async {
-        // TODO: Join via MultipeerService, exchange NI tokens
-    }
+//    func joinSession(host: DiscoveredSession) async {
+//        // TODO: Join via MultipeerService, exchange NI tokens
+//    }
 
     func leaveSession() async {
         // TODO: Disconnect from session, stop monitoring

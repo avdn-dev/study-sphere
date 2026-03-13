@@ -1,41 +1,101 @@
 import MultipeerConnectivity
 import VISOR
 
-struct DiscoveredSession: Equatable, Identifiable {
+struct RoomDiscoveryInfo: Equatable {
+    
+    enum Keys {
+        static let roomName = "name"
+    }
+    
     let peerID: MCPeerID
-    var peerIDDisplayName: String { peerID.displayName }
-    let discoveryInfo: [String: String]?
-
-    var id: String { peerIDDisplayName }
-
-    nonisolated static func == (lhs: DiscoveredSession, rhs: DiscoveredSession) -> Bool {
-        lhs.peerID == rhs.peerID && lhs.discoveryInfo == rhs.discoveryInfo
+    var displayName: String { peerID.displayName }
+    
+    let roomName: String
+    
+    init?(peerID: MCPeerID, discoveryInfo: [String : String]?) {
+        guard
+            let info = discoveryInfo,
+            let roomName = info[Keys.roomName]
+        else {
+            return nil
+        }
+        self.peerID = peerID
+        self.roomName = roomName
     }
+    
 }
 
-@Stubbable
-@Spyable
-protocol MultipeerService: AnyObject {
-    var connectedPeers: [MCPeerID] { get }
-    var discoveredSessions: [DiscoveredSession] { get }
-    var isAdvertising: Bool { get }
-    var isBrowsing: Bool { get }
-
-    func startAdvertising(discoveryInfo: [String: String]?)
-    func stopAdvertising()
-    func startBrowsing()
-    func stopBrowsing()
-    func joinSession(host: DiscoveredSession) async
-    func disconnect()
-    func send(_ data: Data, mode: MCSessionSendDataMode) throws
-    func send(_ data: Data, to peers: [MCPeerID], mode: MCSessionSendDataMode) throws
-    func receivedDataStream() -> AsyncStream<(Data, MCPeerID)>
-}
-
-#if DEBUG
-extension SpyMultipeerService.Call: Equatable {
-    public static func == (lhs: SpyMultipeerService.Call, rhs: SpyMultipeerService.Call) -> Bool {
-        String(describing: lhs) == String(describing: rhs)
+struct ParticipantDiscoveryInfo: Equatable {
+    
+    enum Keys {
+        static let participantName = "name"
     }
+    
+    let peerID: MCPeerID
+    var displayName: String { peerID.displayName }
+    
+    let participantName: String
+    
+    init?(peerID: MCPeerID, discoveryInfo: [String : String]?) {
+        guard
+            let info = discoveryInfo,
+            let participantName = info[Keys.participantName]
+        else {
+            return nil
+        }
+        self.peerID = peerID
+        self.participantName = participantName
+    }
+    
 }
-#endif
+
+//@Stubbable
+//@Spyable
+protocol MultipeerService: AnyObject, Observable {
+    var state: MultipeerServiceState { get }
+    var displayName: String { get }
+    
+    // Room Browsing
+    var discoveredRooms: Result<[MCPeerID : RoomDiscoveryInfo], any Error>? { get }
+    var isLookingForRooms: Bool { get }
+    func startLookingForRooms()
+    func stopLookingForRooms()
+    
+    // Room Hosting
+    var discoveredParticipants: Result<[MCPeerID : ParticipantDiscoveryInfo], any Error>? { get }
+    var isLookingForParticipants: Bool { get }
+    func startLookingForParticipants()
+    func stopLookingForParticipants()
+}
+
+extension MultipeerService {
+    
+    var isHost: Bool {
+        state == .connectedAsHost || state == .lookingForParticipants
+    }
+    
+    var isParticipant: Bool {
+        state == .connectedAsParticipant || state == .lookingForRooms
+    }
+    
+    var isLookingForRooms: Bool {
+        state == .lookingForRooms
+    }
+    
+    var isLookingForParticipants: Bool {
+        state == .lookingForParticipants
+    }
+    
+}
+
+enum MultipeerServiceError: Swift.Error {
+    
+}
+
+enum MultipeerServiceState {
+    case idle
+    case lookingForRooms
+    case lookingForParticipants
+    case connectedAsHost
+    case connectedAsParticipant
+}
