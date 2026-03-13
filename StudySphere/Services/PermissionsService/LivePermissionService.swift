@@ -5,7 +5,7 @@
 //  Created by Chris Wong on 13/3/2026.
 //
 
-import FamilyControls
+@preconcurrency import FamilyControls
 import CoreMotion
 import UIKit
 

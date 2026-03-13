@@ -21,7 +21,7 @@ struct ScreenTimeView: View {
         }
         Button("Block apps") {
             Task {
-                try await viewModel.handle(.openBlockedAppsPicker)
+                await viewModel.handle(.openBlockedAppsPicker)
             }
         }
         .familyActivityPicker(isPresented: $viewModel.state.isBlockedAppPickerPresented, selection: .init(get: {

@@ -5,7 +5,7 @@
 //  Created by Chris Wong on 14/3/2026.
 //
 
-import FamilyControls
+@preconcurrency import FamilyControls
 import SwiftUI
 import Foundation
 import ManagedSettings
@@ -26,11 +26,15 @@ final class ScreenTimeViewModel {
         case openBlockedAppsPicker
     }
     
-    func handle(_ action: Action) async throws {
+    func handle(_ action: Action) async {
         switch action {
         case .openBlockedAppsPicker:
-            try await permissionsService.requestScreenTimesPermission()
-            updateState(\.isBlockedAppPickerPresented, to: true)
+            do {
+                try await permissionsService.requestScreenTimesPermission()
+                updateState(\.isBlockedAppPickerPresented, to: true)
+            } catch {
+                fatalError("Failed to request screen time permission: \(error)")
+            }
         }
     }
     

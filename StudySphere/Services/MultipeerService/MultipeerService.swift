@@ -8,7 +8,7 @@ struct DiscoveredSession: Equatable, Identifiable {
 
     var id: String { peerIDDisplayName }
 
-    nonisolated static func == (lhs: DiscoveredSession, rhs: DiscoveredSession) -> Bool {
+    static func == (lhs: DiscoveredSession, rhs: DiscoveredSession) -> Bool {
         lhs.peerID == rhs.peerID && lhs.discoveryInfo == rhs.discoveryInfo
     }
 }
