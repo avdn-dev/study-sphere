@@ -1,11 +1,11 @@
 import Foundation
+import FamilyControls
 import VISOR
 
-@Stubbable
-@Spyable
 protocol ScreenTimeService: AnyObject {
     var isAuthorized: Bool { get }
     var isBlockedAppInUse: Bool { get }
+    var blockedApps: FamilyActivitySelection { get set }
 
     func requestAuthorization() async throws
     func applyShields()
@@ -14,11 +14,3 @@ protocol ScreenTimeService: AnyObject {
     func stopMonitoring()
     func clearBlockedAppFlag()
 }
-
-#if DEBUG
-extension SpyScreenTimeService.Call: Equatable {
-    public static func == (lhs: SpyScreenTimeService.Call, rhs: SpyScreenTimeService.Call) -> Bool {
-        String(describing: lhs) == String(describing: rhs)
-    }
-}
-#endif

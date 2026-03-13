@@ -1,4 +1,5 @@
 import FamilyControls
+import SwiftUI
 import Foundation
 import ManagedSettings
 import VISOR
@@ -10,6 +11,9 @@ final class LiveScreenTimeService: ScreenTimeService {
 
     var isAuthorized = false
     var isBlockedAppInUse = false
+    var blockedApps = FamilyActivitySelection() { didSet {
+        print("setting")
+    }}
 
     // MARK: - Auth
 
