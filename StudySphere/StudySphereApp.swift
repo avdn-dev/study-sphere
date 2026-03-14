@@ -97,6 +97,9 @@ struct StudySphereApp: App {
         let screenTimeViewModelFactory = ScreenTimeViewModel.Factory {
             ScreenTimeViewModel(screenTimeService: screenTimeService, permissionsService: permissionService)
         }
+        let profileCameraViewModelFactory = ProfileCameraViewModel.Factory {
+            ProfileCameraViewModel()
+        }
 
         // 6. Assign to @State properties
         _router = State(initialValue: router)
@@ -109,6 +112,7 @@ struct StudySphereApp: App {
         _appSelectionViewModelFactory = State(initialValue: appSelectionViewModelFactory)
         _profileService = State(initialValue: profileService)
         _screenTimeViewModelFactory = State(initialValue: screenTimeViewModelFactory)
+        _profileCameraViewModelFactory = State(initialValue: profileCameraViewModelFactory)
     }
 
     // MARK: Internal
@@ -125,6 +129,8 @@ struct StudySphereApp: App {
                 .environment(sessionAnalyticsViewModelFactory)
                 .environment(appSelectionViewModelFactory)
                 .environment(screenTimeViewModelFactory)
+                .environment(profileCameraViewModelFactory)
+                .preferredColorScheme(.dark)
                 .task { profileService.load() }
         }
     }
@@ -141,4 +147,5 @@ struct StudySphereApp: App {
     @State private var appSelectionViewModelFactory: AppSelectionViewModel.Factory
     @State private var profileService: LiveProfileService
     @State private var screenTimeViewModelFactory: ScreenTimeViewModel.Factory
+    @State private var profileCameraViewModelFactory: ProfileCameraViewModel.Factory
 }
