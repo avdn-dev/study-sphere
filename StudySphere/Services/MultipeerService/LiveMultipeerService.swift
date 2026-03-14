@@ -28,40 +28,43 @@ final class LiveMultipeerService: MultipeerService {
     @ObservationIgnored
     private var _receivedMessagesContinuation: AsyncStream<(MCPeerID, SessionMessage)>.Continuation?
     @ObservationIgnored
-    private lazy var _receivedMessages: AsyncStream<(MCPeerID, SessionMessage)> = {
-        AsyncStream { continuation in
-            self._receivedMessagesContinuation = continuation
-        }
-    }()
+    private var _receivedMessagesStream: AsyncStream<(MCPeerID, SessionMessage)>?
 
     var receivedMessages: AsyncStream<(MCPeerID, SessionMessage)> {
-        _receivedMessages
+        if let stream = _receivedMessagesStream { return stream }
+        let stream = AsyncStream<(MCPeerID, SessionMessage)> { continuation in
+            self._receivedMessagesContinuation = continuation
+        }
+        _receivedMessagesStream = stream
+        return stream
     }
 
     @ObservationIgnored
     private var _peerConnectedContinuation: AsyncStream<MCPeerID>.Continuation?
     @ObservationIgnored
-    private lazy var _peerConnected: AsyncStream<MCPeerID> = {
-        AsyncStream { continuation in
-            self._peerConnectedContinuation = continuation
-        }
-    }()
+    private var _peerConnectedStream: AsyncStream<MCPeerID>?
 
     var peerConnected: AsyncStream<MCPeerID> {
-        _peerConnected
+        if let stream = _peerConnectedStream { return stream }
+        let stream = AsyncStream<MCPeerID> { continuation in
+            self._peerConnectedContinuation = continuation
+        }
+        _peerConnectedStream = stream
+        return stream
     }
 
     @ObservationIgnored
     private var _peerDisconnectedContinuation: AsyncStream<MCPeerID>.Continuation?
     @ObservationIgnored
-    private lazy var _peerDisconnected: AsyncStream<MCPeerID> = {
-        AsyncStream { continuation in
-            self._peerDisconnectedContinuation = continuation
-        }
-    }()
+    private var _peerDisconnectedStream: AsyncStream<MCPeerID>?
 
     var peerDisconnected: AsyncStream<MCPeerID> {
-        _peerDisconnected
+        if let stream = _peerDisconnectedStream { return stream }
+        let stream = AsyncStream<MCPeerID> { continuation in
+            self._peerDisconnectedContinuation = continuation
+        }
+        _peerDisconnectedStream = stream
+        return stream
     }
 
     var connectedPeers: [MCPeerID] {
@@ -282,7 +285,23 @@ final class LiveMultipeerService: MultipeerService {
     func disconnect() {
         _session?.disconnect()
         _session = nil
+        _currentStudySession = nil
         state = .idle
+
+        // Finish old continuations and clear streams so they are
+        // recreated on next access. AsyncStream is single-consumer;
+        // reusing a consumed stream silently drops all yielded values.
+        _receivedMessagesContinuation?.finish()
+        _receivedMessagesContinuation = nil
+        _receivedMessagesStream = nil
+
+        _peerConnectedContinuation?.finish()
+        _peerConnectedContinuation = nil
+        _peerConnectedStream = nil
+
+        _peerDisconnectedContinuation?.finish()
+        _peerDisconnectedContinuation = nil
+        _peerDisconnectedStream = nil
     }
 
     // MARK: - Sending Messages

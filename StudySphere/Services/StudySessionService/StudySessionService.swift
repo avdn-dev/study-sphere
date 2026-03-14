@@ -36,7 +36,7 @@ protocol StudySessionService: AnyObject {
     func endSession() async
 
     // Peer actions
-    func joinSession(room: RoomDiscoveryInfo, profile: UserProfile, niTokenData: Data?) async throws -> Bool
+    func joinSession(room: RoomDiscoveryInfo, profile: UserProfile) async throws -> Bool
     func leaveSession() async
 
     // Distraction reporting (any peer)
@@ -67,6 +67,9 @@ final class LiveStudySessionService: StudySessionService {
 
     /// Responses queued until the MC connection is fully established
     private var pendingJoinResponses: [MCPeerID: SessionMessage] = [:]
+
+    /// Key used for the peer's NI session with the leader (peer side only)
+    private var leaderNIKey: String?
 
     init(
         multipeerService: any MultipeerService,
@@ -168,10 +171,14 @@ final class LiveStudySessionService: StudySessionService {
 
     // MARK: - Peer Actions
 
-    func joinSession(room: RoomDiscoveryInfo, profile: UserProfile, niTokenData: Data?) async throws -> Bool {
+    func joinSession(room: RoomDiscoveryInfo, profile: UserProfile) async throws -> Bool {
         phase = .joining
 
-        guard let niTokenData else {
+        // Prepare our NI session and get its discovery token to send to the leader.
+        // Use a stable key we can reference later when running the session.
+        let niKey = "leader-\(room.peerID.displayName)"
+        leaderNIKey = niKey
+        guard let niTokenData = nearbyInteractionService.prepareSession(for: niKey) else {
             logger.error("No NI discovery token available")
             phase = .idle
             return false
@@ -273,12 +280,12 @@ final class LiveStudySessionService: StudySessionService {
         peerIDMap[joinRequest.participantID] = peerID
         participantIDMap[peerID] = joinRequest.participantID
 
-        // Start NI session with peer's discovery token
+        // Prepare NI session for this peer and get the session's own token
         let peerIDString = joinRequest.participantID.uuidString
-        nearbyInteractionService.startSession(with: peerIDString, discoveryTokenData: joinRequest.discoveryTokenData)
+        let leaderTokenData = nearbyInteractionService.prepareSession(for: peerIDString)
 
-        // Get leader's NI token to send back
-        let leaderTokenData = nearbyInteractionService.localDiscoveryTokenData()
+        // Configure and run the session with the peer's discovery token
+        nearbyInteractionService.runSession(for: peerIDString, peerDiscoveryTokenData: joinRequest.discoveryTokenData)
 
         // Queue the response — it will be sent once the MC connection is established
         let response = SessionMessage.joinResponse(
@@ -328,15 +335,13 @@ final class LiveStudySessionService: StudySessionService {
                     participants = newParticipants
                 }
 
-                // Start NI session with leader's token
-                if let leaderTokenData = response.leaderDiscoveryTokenData {
-                    // Use the leader's peerID string (first participant is always leader)
-                    if let leaderParticipant = participants.first {
-                        nearbyInteractionService.startSession(
-                            with: leaderParticipant.id.uuidString,
-                            discoveryTokenData: leaderTokenData
-                        )
-                    }
+                // Run the pre-prepared NI session with the leader's token
+                if let leaderTokenData = response.leaderDiscoveryTokenData,
+                   let niKey = leaderNIKey {
+                    nearbyInteractionService.runSession(
+                        for: niKey,
+                        peerDiscoveryTokenData: leaderTokenData
+                    )
                 }
 
                 phase = .joined
@@ -574,6 +579,7 @@ final class LiveStudySessionService: StudySessionService {
         peerIDMap.removeAll()
         participantIDMap.removeAll()
         pendingJoinResponses.removeAll()
+        leaderNIKey = nil
         phase = .ended
     }
 }
