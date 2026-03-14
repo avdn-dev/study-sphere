@@ -60,11 +60,11 @@ final class LiveMultipeerService: MultipeerService {
         self.peerID = peerID
         self._roomBrowser = MCNearbyServiceBrowser(
             peer: peerID,
-            serviceType: Self.roomPartyServiceType
+            serviceType: Self.roomHostingServiceType
         )
         self._participantBrowser = MCNearbyServiceBrowser(
             peer: peerID,
-            serviceType: Self.roomHostingServiceType
+            serviceType: Self.roomPartyServiceType
         )
         self._delegate = _MCDelegate()
         _roomBrowser.delegate = _delegate
@@ -378,35 +378,48 @@ final class LiveMultipeerService: MultipeerService {
                 // Bug fix: accept invitations in both lookingForParticipants and connectedAsHost
                 case .lookingForParticipants, .connectedAsHost:
                     parent.logger.trace("Received participant invitation from: \(peerID)")
-                    guard let joinRequestHandler = parent.joinRequestHandler else {
-                        parent.logger.error("Received invitation but no handler set")
-                        invitationHandler(false, nil)
-                        return
-                    }
                     guard let context = context else {
                         parent.logger.warning("\(peerID) Missing context, ignoring")
                         invitationHandler(false, nil)
                         return
                     }
-                    let joinRequest: JoinRequest
-                    do {
-                        joinRequest = try LiveMultipeerService.decoder.decode(JoinRequest.self, from: context)
-                    } catch {
-                        parent.logger.warning("\(peerID) join request is malformed with error: \(error), ignoring")
-                        invitationHandler(false, nil)
-                        return
-                    }
-                    Task {
+                    // Only pass raw Data (value types) across the thread boundary.
+                    // The MCPeerID is recovered from joinRequest.peerIDData on MainActor.
+                    let contextData = context
+                    Task { @MainActor [parent] in
+                        // Read joinRequestHandler on MainActor to avoid a data race —
+                        // this delegate method fires on MC's background queue.
+                        guard let joinRequestHandler = parent?.joinRequestHandler else {
+                            parent?.logger.error("Received invitation but no handler set")
+                            invitationHandler(false, nil)
+                            return
+                        }
+                        let joinRequest: JoinRequest
+                        do {
+                            joinRequest = try LiveMultipeerService.decoder.decode(JoinRequest.self, from: contextData)
+                        } catch {
+                            parent?.logger.warning("join request is malformed with error: \(error), ignoring")
+                            invitationHandler(false, nil)
+                            return
+                        }
+                        guard let peerID = try? NSKeyedUnarchiver.unarchivedObject(
+                            ofClass: MCPeerID.self,
+                            from: joinRequest.peerIDData
+                        ) else {
+                            parent?.logger.error("Failed to unarchive peerID from join request")
+                            invitationHandler(false, nil)
+                            return
+                        }
                         do {
                             guard try await joinRequestHandler(peerID, joinRequest) else {
-                                parent.logger.trace("Join request for \(peerID) rejected")
+                                parent?.logger.trace("Join request for \(peerID) rejected")
                                 invitationHandler(false, nil)
                                 return
                             }
-                            parent.logger.trace("Join request for \(peerID) accepted")
-                            invitationHandler(true, self.parent._session)
+                            parent?.logger.trace("Join request for \(peerID) accepted")
+                            invitationHandler(true, parent?._session)
                         } catch {
-                            parent.logger.warning("Join request handler for \(peerID) threw an error: \(error)")
+                            parent?.logger.warning("Join request handler for \(peerID) threw an error: \(error)")
                             invitationHandler(false, nil)
                         }
                     }

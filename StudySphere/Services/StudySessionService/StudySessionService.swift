@@ -7,7 +7,6 @@
 
 import Foundation
 import MultipeerConnectivity
-import NearbyInteraction
 import OSLog
 
 // MARK: - Phase
@@ -172,20 +171,11 @@ final class LiveStudySessionService: StudySessionService {
             return false
         }
 
-        // Build JoinRequest with profile fields
-        guard let token = try? NSKeyedUnarchiver.unarchivedObject(
-            ofClass: NearbyInteraction.NIDiscoveryToken.self,
-            from: niTokenData
-        ) else {
-            logger.error("Failed to unarchive NI discovery token")
-            phase = .idle
-            return false
-        }
-
         let joinRequest = JoinRequest(
-            discoveryToken: token,
+            discoveryTokenData: niTokenData,
             participantID: profile.id,
-            name: profile.name
+            name: profile.name,
+            peerIDData: profile.peerIDData
         )
 
         let accepted = try await multipeerService.joinRoom(with: room, joinRequest: joinRequest)
@@ -258,19 +248,10 @@ final class LiveStudySessionService: StudySessionService {
             return false
         }
 
-        // Archive the peer's MCPeerID for the Participant model
-        let peerIDData: Data
-        do {
-            peerIDData = try NSKeyedArchiver.archivedData(withRootObject: peerID, requiringSecureCoding: true)
-        } catch {
-            logger.error("Failed to archive peerID: \(error)")
-            return false
-        }
-
         // Build participant from join request
         let newParticipant = Participant(
             id: joinRequest.participantID,
-            peerIDData: peerIDData,
+            peerIDData: joinRequest.peerIDData,
             name: joinRequest.name,
             avatarSystemName: joinRequest.avatarSystemName,
             status: .focused
@@ -281,12 +262,7 @@ final class LiveStudySessionService: StudySessionService {
 
         // Start NI session with peer's discovery token
         let peerIDString = joinRequest.participantID.uuidString
-        if let tokenData = try? NSKeyedArchiver.archivedData(
-            withRootObject: joinRequest.discoveryToken,
-            requiringSecureCoding: true
-        ) {
-            nearbyInteractionService.startSession(with: peerIDString, discoveryTokenData: tokenData)
-        }
+        nearbyInteractionService.startSession(with: peerIDString, discoveryTokenData: joinRequest.discoveryTokenData)
 
         // Get leader's NI token to send back
         let leaderTokenData = nearbyInteractionService.localDiscoveryTokenData()

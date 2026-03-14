@@ -25,14 +25,6 @@ struct MainTabView: View {
                 Label("Analytics", systemImage: "chart.bar.fill")
             }
             .tag(AppTab.analytics)
-
-            NavigationContainer(parentRouter: router, tab: .profile) {
-                ProfileView()
-            }
-            .tabItem {
-                Label("Profile", systemImage: "person.circle")
-            }
-            .tag(AppTab.profile)
         }
     }
 }
