@@ -8,9 +8,12 @@
 @preconcurrency import FamilyControls
 import UIKit
 
-final class LivePermissionService: PermissionsService {
+final class LivePermissionService: PermissionsService {    
     var familyControls: AuthorizationCenter = .shared
-    
+    var isScreenTimeAuthorized: Bool {
+        familyControls.authorizationStatus == .approved
+    }
+
     func requestScreenTimesPermission() async throws {
         switch familyControls.authorizationStatus {
         case .notDetermined:

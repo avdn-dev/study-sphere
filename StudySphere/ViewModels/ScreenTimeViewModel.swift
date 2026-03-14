@@ -33,8 +33,7 @@ final class ScreenTimeViewModel {
                 try await permissionsService.requestScreenTimesPermission()
                 updateState(\.isBlockedAppPickerPresented, to: true)
             } catch {
-                print("test")
-//                fatalError("Failed to request screen time permission: \(error)")
+                fatalError("Failed to request screen time permission: \(error)")
             }
         }
     }

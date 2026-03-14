@@ -10,7 +10,7 @@ struct AppSelectionView: View {
     var content: some View {
         NavigationStack {
             VStack {
-                if viewModel.state.isAuthorized {
+                if viewModel.state.isScreenTimeAuthorized {
                     FamilyActivityPicker(selection: $selection)
                 } else {
                     ContentUnavailableView(

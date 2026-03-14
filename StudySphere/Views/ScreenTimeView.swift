@@ -24,6 +24,7 @@ struct ScreenTimeView: View {
         .familyActivityPicker(isPresented: $viewModel.state.isBlockedAppPickerPresented, selection: .init(get: {
             viewModel.state.blockedApps
         }, set: {
+            // WEIRD BUG NEEDED TO UPDATE STATE MANUALLY
             viewModel.state.blockedApps = $0
             viewModel.screenTimeService.blockedApps = $0
             viewModel.screenTimeService.applyShields()

@@ -9,6 +9,7 @@ import FamilyControls
 
 protocol PermissionsService: AnyObject {
     var familyControls: AuthorizationCenter { get set }
+    var isScreenTimeAuthorized: Bool { get }
     
     func requestScreenTimesPermission() async throws
 }

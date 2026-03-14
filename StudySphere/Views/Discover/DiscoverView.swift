@@ -6,7 +6,7 @@ struct DiscoverView: View {
 
     @ViewBuilder
     var content: some View {
-        ScreenTimeView()
+//        ScreenTimeView()
         
         Group {
             if viewModel.state.discoveredSessions.isEmpty {
