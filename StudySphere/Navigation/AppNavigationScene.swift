@@ -54,7 +54,7 @@ enum AppSheet: @MainActor SheetDestination {
         case .profile:
             ProfileView()
         case .createSession:
-            NavigationStack { CreateSessionView() }
+          NavigationStack { CreateSessionView() }
         case .discover:
             NavigationStack { DiscoverView() }
         }
