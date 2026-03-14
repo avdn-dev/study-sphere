@@ -41,6 +41,15 @@ struct EditProfileView: View {
                 }
                 .glassButton()
                 .listRowBackground(Color.clear)
+                .confirmationDialog("Change Photo", isPresented: $showingPhotoOptions) {
+                    Button("Choose from Library") {
+                        showingPhotoPicker = true
+                    }
+                    Button("Take Photo") {
+                        photoFlow = .camera
+                    }
+                    Button("Cancel", role: .cancel) {}
+                }
             }
 
             Section("Name") {
@@ -80,15 +89,6 @@ struct EditProfileView: View {
         .task {
             await viewModel.handle(.loadProfile)
             editedName = viewModel.state.profile?.name ?? "Student"
-        }
-        .confirmationDialog("Change Photo", isPresented: $showingPhotoOptions) {
-            Button("Choose from Library") {
-                showingPhotoPicker = true
-            }
-            Button("Take Photo") {
-                photoFlow = .camera
-            }
-            Button("Cancel", role: .cancel) {}
         }
         .photosPicker(
             isPresented: $showingPhotoPicker,
