@@ -1,13 +1,24 @@
 import Foundation
+import Observation
 
-struct StudySession: Codable, Equatable, Identifiable, Sendable {
+@Observable
+final class StudySession: Codable, Identifiable, Sendable {
     let id: UUID
-    let hostName: String
-    let hostPeerIDData: Data
-    var settings: SessionSettings
-    var startedAt: Date?
-    var endedAt: Date?
-    var participants: [Participant]
-
-    var isActive: Bool { startedAt != nil && endedAt == nil }
+    let sessionName: String
+    let maxSize: Int
+    
+    init(id: UUID, sessionName: String, maxSize: Int) {
+        self.id = id
+        self.sessionName = sessionName
+        precondition((1...8).contains(maxSize), "Invalid study session size")
+        self.maxSize = maxSize
+    }
 }
+
+extension StudySession: Equatable {
+    static func == (lhs: StudySession, rhs: StudySession) -> Bool {
+        return lhs.id == rhs.id
+    }
+}
+
+

@@ -1,41 +1,153 @@
 import MultipeerConnectivity
 import VISOR
 
-struct DiscoveredSession: Equatable, Identifiable {
+struct RoomDiscoveryInfo: Equatable {
+    
+    enum Keys {
+        static let roomName = "name"
+    }
+    
     let peerID: MCPeerID
-    var peerIDDisplayName: String { peerID.displayName }
-    let discoveryInfo: [String: String]?
-
-    var id: String { peerIDDisplayName }
-
-    nonisolated static func == (lhs: DiscoveredSession, rhs: DiscoveredSession) -> Bool {
-        lhs.peerID == rhs.peerID && lhs.discoveryInfo == rhs.discoveryInfo
+    var displayName: String { peerID.displayName }
+    
+    let roomName: String
+    
+    init?(peerID: MCPeerID, discoveryInfo: [String : String]?) {
+        guard
+            let info = discoveryInfo,
+            let roomName = info[Keys.roomName]
+        else {
+            return nil
+        }
+        self.peerID = peerID
+        self.roomName = roomName
     }
+    
+    init(peerID: MCPeerID, roomName: String) {
+        self.peerID = peerID
+        self.roomName = roomName
+    }
+    
+    var discoveryInfo: [String : String] {
+        [
+            Keys.roomName: roomName
+        ]
+    }
+    
 }
 
-@Stubbable
-@Spyable
+struct ParticipantDiscoveryInfo: Equatable {
+    
+    enum Keys {
+        static let participantName = "name"
+    }
+    
+    let peerID: MCPeerID
+    var displayName: String { peerID.displayName }
+    
+    let participantName: String
+    
+    init?(peerID: MCPeerID, discoveryInfo: [String : String]?) {
+        guard
+            let info = discoveryInfo,
+            let participantName = info[Keys.participantName]
+        else {
+            return nil
+        }
+        self.peerID = peerID
+        self.participantName = participantName
+    }
+    
+    var discoveryInfo: [String : String] {
+        [
+            Keys.participantName: participantName
+        ]
+    }
+    
+}
+
+struct RoomConfiguration {
+    var displayName: String
+}
+
+//@Stubbable
+//@Spyable
 protocol MultipeerService: AnyObject {
-    var connectedPeers: [MCPeerID] { get }
-    var discoveredSessions: [DiscoveredSession] { get }
-    var isAdvertising: Bool { get }
-    var isBrowsing: Bool { get }
-
-    func startAdvertising(discoveryInfo: [String: String]?)
-    func stopAdvertising()
-    func startBrowsing()
-    func stopBrowsing()
-    func joinSession(host: DiscoveredSession) async
-    func disconnect()
-    func send(_ data: Data, mode: MCSessionSendDataMode) throws
-    func send(_ data: Data, to peers: [MCPeerID], mode: MCSessionSendDataMode) throws
-    func receivedDataStream() -> AsyncStream<(Data, MCPeerID)>
+    
+    @StubbableDefault(MultipeerServiceState.idle)
+    var state: MultipeerServiceState { get }
+    var displayName: String { get }
+    
+    // Room Browsing
+    var discoveredRooms: Result<[MCPeerID : RoomDiscoveryInfo], any Error>? { get }
+    var isLookingForRooms: Bool { get }
+    func startLookingForRooms() throws
+    func stopLookingForRooms()
+    
+    // Joining A Room
+    func joinRoom(with info: RoomDiscoveryInfo) async throws -> Bool
+    
+    var joinRequestHandler: ((
+        _ peerID: MCPeerID,
+        _ joinRequest: JoinRequest
+    ) async throws -> Bool)? { get set }
+    
+    func inviteParticipantToRoom() async throws -> Bool
+    
+    // Room Hosting
+    var discoveredParticipants: Result<[MCPeerID : ParticipantDiscoveryInfo], any Error>? { get }
+    var isLookingForParticipants: Bool { get }
+    func startLookingForParticipants() throws
+    func stopLookingForParticipants()
+    
+    var currentStudySession: StudySession? { get }
+    func setCurrentSession(_ session: StudySession) throws
+    
+    // Sending Messages
+    #warning("TODO: Decide on what messages to send")
+    var messages: AsyncStream<Void> { get }
+    func send(message: Void) throws
+    
 }
 
-#if DEBUG
-extension SpyMultipeerService.Call: Equatable {
-    public static func == (lhs: SpyMultipeerService.Call, rhs: SpyMultipeerService.Call) -> Bool {
-        String(describing: lhs) == String(describing: rhs)
+extension MultipeerService {
+    
+    var isHost: Bool {
+        state == .connectedAsHost || state == .lookingForParticipants
     }
+    
+    var isParticipant: Bool {
+        state == .connectedAsParticipant || state == .lookingForRooms
+    }
+    
+    var isLookingForRooms: Bool {
+        state == .lookingForRooms
+    }
+    
+    var isLookingForParticipants: Bool {
+        state == .lookingForParticipants
+    }
+    
+    var messages: AsyncStream<Void> {
+        preconditionFailure("Not implemented")
+    }
+    
 }
-#endif
+
+enum MultipeerServiceError: Swift.Error {
+    case missingRoom
+    case alreadyInRoom
+    case notLookingForRooms
+    case roomInfoInvalid
+    case alreadyJoiningRoom
+    case failedToJoinRoom
+}
+
+enum MultipeerServiceState {
+    case idle
+    case lookingForRooms
+    case lookingForParticipants
+    case joiningRoom
+    case connectedAsHost
+    case connectedAsParticipant
+}
