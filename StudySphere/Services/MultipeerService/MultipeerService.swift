@@ -76,7 +76,7 @@ protocol MultipeerService: AnyObject {
     func stopLookingForRooms()
     
     // Joining A Room
-    func joinRoom(with info: RoomDiscoveryInfo) throws
+    func joinRoom(with info: RoomDiscoveryInfo) async throws -> Bool
     
     // Room Hosting
     var discoveredParticipants: Result<[MCPeerID : ParticipantDiscoveryInfo], any Error>? { get }
@@ -86,6 +86,10 @@ protocol MultipeerService: AnyObject {
     
     var currentRoom: RoomDiscoveryInfo? { get }
     func createNewRoom(with info: RoomDiscoveryInfo) throws
+    
+    // Sending Messages
+    #warning("TODO: Decide on what messages to send")
+    var messages: AsyncStream<Void> { get }
     
 }
 
@@ -107,6 +111,10 @@ extension MultipeerService {
         state == .lookingForParticipants
     }
     
+    var messages: AsyncStream<Void> {
+        preconditionFailure("Not implemented")
+    }
+    
 }
 
 enum MultipeerServiceError: Swift.Error {
@@ -114,12 +122,15 @@ enum MultipeerServiceError: Swift.Error {
     case alreadyInRoom
     case notLookingForRooms
     case roomInfoInvalid
+    case alreadyJoiningRoom
+    case failedToJoinRoom
 }
 
 enum MultipeerServiceState {
     case idle
     case lookingForRooms
     case lookingForParticipants
+    case joiningRoom
     case connectedAsHost
     case connectedAsParticipant
 }

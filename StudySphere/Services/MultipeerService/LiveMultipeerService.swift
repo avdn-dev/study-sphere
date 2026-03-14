@@ -8,6 +8,10 @@ final class LiveMultipeerService: MultipeerService {
     
     private static let roomHostingServiceType = "SSRoomHost"
     private static let roomPartyServiceType = "SSRoomParty"
+    static let timeout: TimeInterval = 30.0
+    
+    private static let decoder = JSONDecoder()
+    private static let encoder = JSONEncoder()
     
     private let logger: Logger
     
@@ -78,13 +82,31 @@ final class LiveMultipeerService: MultipeerService {
     
     // MARK: - Joining A Room
     
-    func joinRoom(with info: RoomDiscoveryInfo) throws {
+    private var _roomJoinContinuation: CheckedContinuation<Bool, any Error>?
+    private var _roomJoinPeerID: MCPeerID?
+    
+    func joinRoom(with info: RoomDiscoveryInfo) async throws -> Bool {
         switch self.discoveredRooms {
         case .success(let rooms):
             guard rooms.keys.contains(info.peerID) else {
                 throw MultipeerServiceError.roomInfoInvalid
             }
-            
+            guard _roomJoinContinuation == nil else {
+                logger.error("Already joining a room")
+                throw MultipeerServiceError.alreadyJoiningRoom
+            }
+            let session = MCSession(peer: peerID)
+            _session = session
+            #warning("TODO: pass info to peers")
+            let result = try await withCheckedThrowingContinuation { continuation in
+                _roomBrowser.invitePeer(info.peerID, to: session, withContext: nil, timeout: Self.timeout)
+                _roomJoinContinuation = continuation
+            }
+            guard result else {
+                _session = nil
+                return false
+            }
+            return true
         case .failure(let failure):
             throw failure
         case .none:
@@ -155,6 +177,9 @@ final class LiveMultipeerService: MultipeerService {
         case .connectedAsParticipant:
             logger.error("Disconnect from the room first before creating a new one")
             #warning("TODO: Handle participant")
+        case .joiningRoom:
+            logger.error("Cannot create new room while joining one")
+            #warning("TODO: Handle joining room")
         case .idle:
             break
         }
@@ -169,7 +194,9 @@ final class LiveMultipeerService: MultipeerService {
     // MARK: - Delegate
     
     private final class _MCDelegate: NSObject,
-        MCNearbyServiceBrowserDelegate, MCNearbyServiceAdvertiserDelegate
+        MCNearbyServiceBrowserDelegate,
+        MCNearbyServiceAdvertiserDelegate,
+        MCSessionDelegate
     {
         unowned var parent: LiveMultipeerService!
         
@@ -259,6 +286,75 @@ final class LiveMultipeerService: MultipeerService {
             default:
                 preconditionFailure()
             }
+        }
+        
+        // Session Delegate
+        
+        func session(_ session: MCSession,
+                     peer peerID: MCPeerID,
+                     didChange state: MCSessionState) {
+            switch session {
+            case self.parent._session:
+                switch parent.state {
+                case .joiningRoom:
+                    guard let continuation = parent._roomJoinContinuation else {
+                        preconditionFailure("\(#function): Missing room join continuation")
+                    }
+                    guard let roomPeerID = self.parent._roomJoinPeerID else {
+                        parent.logger.error("Missing MCPeerID for room")
+                        continuation.resume(throwing: MultipeerServiceError.failedToJoinRoom)
+                        parent._roomJoinContinuation = nil
+                        return
+                    }
+                    guard peerID == roomPeerID else {
+                        parent.logger.error("Mismatched MCPeerID for room join")
+                        continuation.resume(throwing: MultipeerServiceError.failedToJoinRoom)
+                        parent._roomJoinContinuation = nil
+                        return
+                    }
+                    switch state {
+                    case .notConnected:
+                        continuation.resume(returning: false)
+                        parent._roomJoinContinuation = nil
+                    case .connecting:
+                        break
+                    case .connected:
+                        continuation.resume(returning: true)
+                        parent._roomJoinContinuation = nil
+                    @unknown default:
+                        break
+                    }
+                default:
+                    break
+                }
+            default:
+                preconditionFailure()
+            }
+        }
+        
+        func session(_ session: MCSession,
+                     didReceive data: Data,
+                     fromPeer peerID: MCPeerID) {
+            #warning("TODO: Handle data")
+        }
+        
+        func session(_ session: MCSession,
+                     didReceive stream: InputStream,
+                     withName streamName: String,
+                     fromPeer peerID: MCPeerID) {
+        }
+        
+        func session(_ session: MCSession,
+                     didStartReceivingResourceWithName resourceName: String,
+                     fromPeer peerID: MCPeerID,
+                     with progress: Progress) {
+        }
+        
+        func session(_ session: MCSession,
+                     didFinishReceivingResourceWithName resourceName: String,
+                     fromPeer peerID: MCPeerID,
+                     at localURL: URL?,
+                     withError error: (any Error)?) {
         }
         
     }
