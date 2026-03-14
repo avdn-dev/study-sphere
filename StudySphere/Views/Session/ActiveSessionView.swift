@@ -55,7 +55,10 @@ struct ActiveSessionView: View {
           if viewModel.state.activeSession?.isActive == false {
             ToolbarItem(placement: .topBarLeading) {
               Button("End session", systemImage: "xmark") {
-                dismiss()
+                Task {
+                  await viewModel.handle(.endSession)
+                  dismiss()
+                }
               }
             }
           }
