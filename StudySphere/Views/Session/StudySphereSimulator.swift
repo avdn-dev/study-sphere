@@ -16,7 +16,7 @@ final class StudySphereSimulator {
 
     private let names = ["Alice", "Bob", "Carol", "Dave", "Eve"]
     private let avatars = [
-        "person.circle.fill",
+        "person.crop.circle.fill",
         "figure.walk.circle.fill",
         "star.circle.fill",
         "heart.circle.fill",

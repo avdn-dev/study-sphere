@@ -15,6 +15,7 @@ final class ActiveSessionViewModel {
         @Bound(\ActiveSessionViewModel.sessionInteractor) var activeSession: StudySession?
         @Bound(\ActiveSessionViewModel.sessionInteractor) var participants: [Participant] = []
         @Bound(\ActiveSessionViewModel.sessionInteractor) var isHost = false
+        @Bound(\ActiveSessionViewModel.sessionInteractor) var phase: StudySessionPhase = .idle
         @Bound(\ActiveSessionViewModel.sessionInteractor) var remainingTime: TimeInterval?
         @Bound(\ActiveSessionViewModel.sessionInteractor) var isCalibrated = false
         @Bound(\ActiveSessionViewModel.distractionInteractor) var participantStatuses: [UUID: ParticipantStatus] = [:]

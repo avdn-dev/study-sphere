@@ -26,6 +26,7 @@ struct JoinResponse: Codable, Sendable {
 }
 
 struct SessionStateUpdate: Codable, Sendable {
+    let version: UInt64
     let participants: [Participant]
 }
 
@@ -39,18 +40,19 @@ struct SessionEnded: Codable, Sendable {
 }
 
 struct DistractionBroadcast: Codable, Sendable {
+    let id: UUID
     let participantID: UUID
     let status: ParticipantStatus
     let source: DistractionEvent.Source?
 }
 
 struct PositionUpdate: Codable, Sendable {
+    let sequence: UInt64
     let entries: [Entry]
 
     struct Entry: Codable, Sendable {
         let participantID: UUID
         let x: Float
         let y: Float
-        let status: ParticipantStatus
     }
 }

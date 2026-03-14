@@ -9,10 +9,10 @@ protocol NearbyInteractionService: AnyObject {
     var estimatedPositions: [String: PeerPosition] { get }
     var isSupported: Bool { get }
 
-    func startSession(with peerID: String, discoveryTokenData: Data)
+    func prepareSession(for peerID: String) -> Data?
+    func runSession(for peerID: String, peerDiscoveryTokenData: Data)
     func stopSession(for peerID: String)
     func stopAllSessions()
-    func localDiscoveryTokenData() -> Data?
     func calibrateCentroid()
     func isPeerOutsideRadius(_ peerID: String, radiusMeters: Double) -> Bool
 }

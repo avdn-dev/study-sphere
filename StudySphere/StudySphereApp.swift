@@ -1,3 +1,4 @@
+import NearbyInteraction
 import OSLog
 import SwiftData
 import SwiftUI
@@ -9,6 +10,7 @@ struct StudySphereApp: App {
     // MARK: Lifecycle
 
     init() {
+        print("NI supported:", NISession.deviceCapabilities.supportsPreciseDistanceMeasurement)
         // 1. SwiftData container and context for profile/session history
         let schema = Schema([SessionHistoryEntryRecord.self])
         let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
@@ -28,6 +30,7 @@ struct StudySphereApp: App {
         let motionService = LiveMotionService()
         let screenTimeService = LiveScreenTimeService()
         let permissionService = LivePermissionService()
+        let audioService = LiveAudioService()
 
         // 3. Create services (continued) & interactors
         let studySessionService = LiveStudySessionService(
@@ -65,8 +68,7 @@ struct StudySphereApp: App {
                 router: router,
                 multipeerService: multipeerService,
                 studySessionService: studySessionService,
-                profileService: profileService,
-                nearbyInteractionService: nearbyInteractionService)
+                profileService: profileService)
         }
         let createSessionViewModelFactory: CreateSessionViewModel.Factory = .routed { router in
             CreateSessionViewModel(
@@ -96,6 +98,9 @@ struct StudySphereApp: App {
         let screenTimeViewModelFactory = ScreenTimeViewModel.Factory {
             ScreenTimeViewModel(screenTimeService: screenTimeService, permissionsService: permissionService)
         }
+        let profileCameraViewModelFactory = ProfileCameraViewModel.Factory {
+            ProfileCameraViewModel()
+        }
 
         // 6. Assign to @State properties
         _router = State(initialValue: router)
@@ -108,6 +113,7 @@ struct StudySphereApp: App {
         _appSelectionViewModelFactory = State(initialValue: appSelectionViewModelFactory)
         _profileService = State(initialValue: profileService)
         _screenTimeViewModelFactory = State(initialValue: screenTimeViewModelFactory)
+        _profileCameraViewModelFactory = State(initialValue: profileCameraViewModelFactory)
     }
 
     // MARK: Internal
@@ -124,6 +130,9 @@ struct StudySphereApp: App {
                 .environment(sessionAnalyticsViewModelFactory)
                 .environment(appSelectionViewModelFactory)
                 .environment(screenTimeViewModelFactory)
+                .environment(profileCameraViewModelFactory)
+                .environment(profileService)
+                .preferredColorScheme(.dark)
                 .task { profileService.load() }
         }
     }
@@ -140,4 +149,5 @@ struct StudySphereApp: App {
     @State private var appSelectionViewModelFactory: AppSelectionViewModel.Factory
     @State private var profileService: LiveProfileService
     @State private var screenTimeViewModelFactory: ScreenTimeViewModel.Factory
+    @State private var profileCameraViewModelFactory: ProfileCameraViewModel.Factory
 }

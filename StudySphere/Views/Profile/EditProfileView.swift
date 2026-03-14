@@ -1,10 +1,4 @@
-//
-//  EditProfileView.swift
-//  StudySphere
-//
-//  Created by Yanlin Li  on 14/3/2026.
-//
-
+import PhotosUI
 import SwiftUI
 import UIKit
 import VISOR
@@ -13,15 +7,18 @@ import VISOR
 struct EditProfileView: View {
     var onDismiss: () -> Void
 
-    @State private var editedName: String = "Student"
+    @State private var editedName: String = ""
     @State private var selectedImage: UIImage?
+    @State private var showingPhotoOptions = false
+    @State private var showingPhotoPicker = false
+    @State private var selectedPhotoItem: PhotosPickerItem?
+    @State private var photoFlow: PhotoFlow?
 
     var content: some View {
         List {
             Section {
                 Button {
-                    // Scaffold: connect your image picker / PHPickerViewController here.
-                    // When the user picks an image, set `selectedImage = chosenImage`.
+                    showingPhotoOptions = true
                 } label: {
                     VStack(spacing: 8) {
                         ZStack(alignment: .bottomTrailing) {
@@ -74,9 +71,58 @@ struct EditProfileView: View {
             }
         }
         .navigationTitle("Edit Profile")
+        .navigationBarTitleDisplayMode(.inline)
+        .onAppear {
+            if let name = viewModel.state.profile?.name {
+                editedName = name
+            }
+        }
         .task {
             await viewModel.handle(.loadProfile)
             editedName = viewModel.state.profile?.name ?? "Student"
+        }
+        .confirmationDialog("Change Photo", isPresented: $showingPhotoOptions) {
+            Button("Choose from Library") {
+                showingPhotoPicker = true
+            }
+            Button("Take Photo") {
+                photoFlow = .camera
+            }
+            Button("Cancel", role: .cancel) {}
+        }
+        .photosPicker(
+            isPresented: $showingPhotoPicker,
+            selection: $selectedPhotoItem,
+            matching: .images
+        )
+        .onChange(of: selectedPhotoItem) { _, item in
+            guard let item else { return }
+            Task {
+                if let transferable = try? await item.loadTransferable(type: ImageTransferable.self) {
+                    photoFlow = .crop(transferable.image)
+                }
+                selectedPhotoItem = nil
+            }
+        }
+        .fullScreenCover(item: $photoFlow) { flow in
+            switch flow {
+            case .camera:
+                ProfileCameraView(
+                    onPhotoCaptured: { image in
+                        photoFlow = .crop(image)
+                    },
+                    onDismiss: { photoFlow = nil }
+                )
+            case .crop(let image):
+                PhotoCropView(
+                    image: image,
+                    onCropped: { cropped in
+                        selectedImage = cropped
+                        photoFlow = nil
+                    },
+                    onCancel: { photoFlow = nil }
+                )
+            }
         }
     }
 
@@ -89,7 +135,7 @@ struct EditProfileView: View {
                 .frame(width: 100, height: 100)
                 .clipShape(Circle())
         } else {
-            Image(systemName: "person.circle.fill")
+            Image(systemName: "person.crop.circle.fill")
                 .font(.system(size: 100))
                 .foregroundStyle(.secondary)
         }
@@ -99,8 +145,18 @@ struct EditProfileView: View {
         editedName != (viewModel.state.profile?.name ?? "Student")
     }
 
-    /// True when the user has picked an image in this session (scaffold: set when your picker returns).
     private var hasImageChange: Bool {
         selectedImage != nil
+    }
+}
+
+// MARK: - PhotoFlow
+
+extension EditProfileView {
+    enum PhotoFlow: Identifiable {
+        case camera
+        case crop(UIImage)
+
+        var id: String { "photoFlow" }
     }
 }

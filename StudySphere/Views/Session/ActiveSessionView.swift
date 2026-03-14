@@ -5,32 +5,7 @@ import VISOR
 struct ActiveSessionView: View {
   @Environment(\.dismiss) private var dismiss
 
-    @State private var simulator = StudySphereSimulator()
     @State private var isPulsing = false
-
-    private var isSessionActive: Bool {
-        viewModel.state.activeSession?.isActive == true
-    }
-
-    private var isHost: Bool {
-        viewModel.state.isHost
-    }
-
-    private var isSimulatorMode: Bool {
-        viewModel.state.participants.isEmpty
-    }
-
-    private var activeParticipants: [Participant] {
-        isSimulatorMode ? simulator.participants : viewModel.state.participants
-    }
-
-    private var activePositions: [String: PeerPosition] {
-        isSimulatorMode ? simulator.positions : viewModel.state.estimatedPositions
-    }
-
-    private var activeStatuses: [UUID: ParticipantStatus] {
-        isSimulatorMode ? simulator.statuses : viewModel.state.participantStatuses
-    }
 
     private var activeRadiusMeters: Double {
         viewModel.state.activeSession?.settings.radiusMeters ?? 5.0
@@ -43,9 +18,9 @@ struct ActiveSessionView: View {
 
             // Full-screen Metal view — blob never clips
             MetalMetaballView(
-                participants: activeParticipants,
-                positions: activePositions,
-                statuses: activeStatuses,
+                participants: viewModel.state.participants,
+                positions: viewModel.state.estimatedPositions,
+                statuses: viewModel.state.participantStatuses,
                 radiusMeters: activeRadiusMeters
             )
             .ignoresSafeArea()
@@ -68,7 +43,7 @@ struct ActiveSessionView: View {
 
             // UI layer
             VStack(spacing: 16) {
-                if isSessionActive {
+              if viewModel.state.activeSession?.isActive == true {
                     liveSessionLayout
                 } else {
                     waitingRoomLayout
@@ -76,19 +51,19 @@ struct ActiveSessionView: View {
             }
             .padding(.bottom)
         }
-        .preferredColorScheme(.dark)
-        .onAppear {
-            if isSimulatorMode { simulator.start() }
-            isPulsing = true
-        }
-        .onDisappear {
-            simulator.stop()
+        .onChange(of: viewModel.state.phase) { _, newPhase in
+            if newPhase == .ended {
+                dismiss()
+            }
         }
         .toolbar {
-          if !isSessionActive {
+          if viewModel.state.activeSession?.isActive == false {
             ToolbarItem(placement: .topBarLeading) {
               Button("End session", systemImage: "xmark") {
-                dismiss()
+                Task {
+                  await viewModel.handle(.endSession)
+                  dismiss()
+                }
               }
             }
           }
@@ -103,8 +78,8 @@ struct ActiveSessionView: View {
             ZStack {
                 GeometryReader { geo in
                     let side = geo.size.width
-                    ForEach(activeParticipants) { participant in
-                        let status = activeStatuses[participant.id] ?? participant.status
+                  ForEach(viewModel.state.participants) { participant in
+                    let status = viewModel.state.participantStatuses[participant.id] ?? participant.status
                         let pos = avatarPosition(for: participant, viewSize: side)
                         avatarView(participant: participant, status: status)
                             .position(pos)
@@ -132,10 +107,10 @@ struct ActiveSessionView: View {
             // Participant list
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 12) {
-                    ForEach(activeParticipants) { participant in
+                    ForEach(viewModel.state.participants) { participant in
                         ParticipantNodeView(
                             participant: participant,
-                            status: activeStatuses[participant.id] ?? participant.status
+                            status: viewModel.state.participantStatuses[participant.id] ?? participant.status
                         )
                     }
                 }
@@ -145,7 +120,7 @@ struct ActiveSessionView: View {
             Spacer()
 
             // Controls
-            if isHost {
+            if viewModel.state.isHost {
                 Button("End Session", role: .destructive) {
                     Task {
                         await viewModel.handle(.endSession)
@@ -175,7 +150,7 @@ struct ActiveSessionView: View {
 
             Spacer()
 
-            if isHost {
+            if viewModel.state.isHost {
                 hostLobbyControls
             } else {
                 participantLobbyControls
@@ -185,9 +160,9 @@ struct ActiveSessionView: View {
     }
 
     private var lobbyHeaderCard: some View {
-        let statusText = isHost ? "LOBBY • YOU'RE HOST" : "LOBBY • WAITING TO START"
+        let statusText = viewModel.state.isHost ? "LOBBY • YOU'RE HOST" : "LOBBY • WAITING TO START"
         let descriptionText: String = {
-            if isHost {
+            if viewModel.state.isHost {
                 return "Start the circle when everyone’s in. Others join from Discover."
             } else {
                 return "You’re in. Waiting for the host to start the focus circle."
@@ -233,17 +208,17 @@ struct ActiveSessionView: View {
 
     private var participantsStrip: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("CURRENT PARTICIPANTS (\(activeParticipants.count))")
+            Text("CURRENT PARTICIPANTS (\(viewModel.state.participants.count))")
                 .font(.caption.weight(.semibold))
                 .tracking(1)
                 .foregroundStyle(.secondary)
 
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 12) {
-                    ForEach(activeParticipants) { participant in
+                    ForEach(viewModel.state.participants) { participant in
                         ParticipantNodeView(
                             participant: participant,
-                            status: activeStatuses[participant.id] ?? participant.status
+                            status: viewModel.state.participantStatuses[participant.id] ?? participant.status
                         )
                         .padding(8)
                         .background(
@@ -383,7 +358,7 @@ struct ActiveSessionView: View {
 
         let worldX: Double
         let worldY: Double
-        if let pos = activePositions[key] {
+        if let pos = viewModel.state.estimatedPositions[key] {
             worldX = pos.x
             worldY = pos.y
         } else if let pos = participant.position {
@@ -405,10 +380,21 @@ struct ActiveSessionView: View {
     private func avatarView(participant: Participant, status: ParticipantStatus) -> some View {
         let color = avatarColor(for: status)
 
-        Image(systemName: participant.avatarSystemName)
-            .font(.system(size: 32))
-            .foregroundStyle(color)
-            .shadow(color: color.opacity(0.6), radius: 6)
+        if let imageData = participant.avatarImageData,
+           let uiImage = UIImage(data: imageData) {
+            Image(uiImage: uiImage)
+                .resizable()
+                .scaledToFill()
+                .frame(width: 40, height: 40)
+                .clipShape(Circle())
+                .overlay(Circle().stroke(color, lineWidth: 2))
+                .shadow(color: color.opacity(0.6), radius: 6)
+        } else {
+            Image(systemName: participant.avatarSystemName)
+                .font(.system(size: 32))
+                .foregroundStyle(color)
+                .shadow(color: color.opacity(0.6), radius: 6)
+        }
     }
 
     private func avatarColor(for status: ParticipantStatus) -> Color {
@@ -417,6 +403,7 @@ struct ActiveSessionView: View {
         case .distracted: Color(red: 0.75, green: 0.15, blue: 0.20)
         case .outsideCircle: Color(red: 0.75, green: 0.15, blue: 0.20).opacity(0.6)
         case .disconnected: .gray
+        case .reconnecting: .gray.opacity(0.6)
         }
     }
 }

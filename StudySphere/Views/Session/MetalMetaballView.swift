@@ -41,6 +41,7 @@ struct MetalMetaballView: UIViewRepresentable {
             case .distracted: 0.2
             case .outsideCircle: 0.4
             case .disconnected: 0.1
+            case .reconnecting: 0.15
             }
 
             let key = participant.peerIDData.base64EncodedString()
