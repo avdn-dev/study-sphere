@@ -45,6 +45,7 @@ struct ProfileCameraView: View {
             .foregroundStyle(.white)
             .frame(width: 44, height: 44)
         }
+        .glassButton(prominent: false)
 
         Spacer()
 
@@ -68,6 +69,7 @@ struct ProfileCameraView: View {
             .foregroundStyle(.white)
             .frame(width: 44, height: 44)
         }
+        .glassButton(prominent: false)
       }
       .padding(.horizontal)
 
@@ -146,7 +148,7 @@ struct ProfileCameraView: View {
       Button("Cancel") {
         onDismiss()
       }
-      .foregroundStyle(.white)
+      .glassButton(prominent: false)
     }
   }
 
