@@ -13,7 +13,6 @@ final class DiscoverViewModel {
     }
 
     struct State: Equatable {
-//        @Bound(\DiscoverViewModel.multipeerService) var discoveredSessions: [DiscoveredSession] = []
 //        @Bound(\DiscoverViewModel.multipeerService) var isBrowsing = false
 //        @Bound(\DiscoverViewModel.sessionInteractor) var activeSession: StudySession?
     }

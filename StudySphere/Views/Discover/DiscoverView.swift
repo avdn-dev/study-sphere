@@ -4,6 +4,7 @@ import VISOR
 @LazyViewModel(DiscoverViewModel.self)
 struct DiscoverView: View {
 
+    @ViewBuilder
     var content: some View {
 //        Group {
 //            if viewModel.state.discoveredSessions.isEmpty {

@@ -1,43 +1,30 @@
 import FamilyControls
+import SwiftUI
 import Foundation
 import ManagedSettings
 import VISOR
+import DeviceActivity
 
 @Observable
 final class LiveScreenTimeService: ScreenTimeService {
 
     // MARK: - State
 
-    var isAuthorized = false
-    var isBlockedAppInUse = false
+    var blockedApps = FamilyActivitySelection()
+    
 
-    // MARK: - Auth
-
-    func requestAuthorization() async throws {
-        // TODO: Call AuthorizationCenter.shared.requestAuthorization
-    }
-
+    private let store = ManagedSettingsStore()
     // MARK: - Shields
 
     func applyShields() {
-        // TODO: Apply ManagedSettingsStore shields from selected apps
+        store.shield.applications = blockedApps.applicationTokens.isEmpty ? nil : blockedApps.applicationTokens
+        store.shield.applicationCategories = blockedApps.categoryTokens.isEmpty ? nil : .specific(blockedApps.categoryTokens)
+        store.shield.webDomains = blockedApps.webDomainTokens.isEmpty ? nil : blockedApps.webDomainTokens
     }
 
     func removeShields() {
-        // TODO: Remove all shields from ManagedSettingsStore
-    }
-
-    // MARK: - Monitoring
-
-    func startMonitoring() {
-        // TODO: Start DeviceActivityMonitor for blocked app usage
-    }
-
-    func stopMonitoring() {
-        // TODO: Stop DeviceActivityMonitor
-    }
-
-    func clearBlockedAppFlag() {
-        isBlockedAppInUse = false
+        store.shield.applications = nil
+        store.shield.applicationCategories = nil
+        store.shield.webDomains = nil
     }
 }

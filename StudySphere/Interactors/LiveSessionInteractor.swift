@@ -9,13 +9,15 @@ final class LiveSessionInteractor: SessionInteractor {
         nearbyInteractionService: any NearbyInteractionService,
         motionService: any MotionService,
         screenTimeService: any ScreenTimeService,
-        profileService: any ProfileService)
+        profileService: any ProfileService,
+        permissionsService: any PermissionsService)
     {
         self.multipeerService = multipeerService
         self.nearbyInteractionService = nearbyInteractionService
         self.motionService = motionService
         self.screenTimeService = screenTimeService
         self.profileService = profileService
+        self.permissionsService = permissionsService
     }
 
     // MARK: - State
@@ -25,7 +27,7 @@ final class LiveSessionInteractor: SessionInteractor {
     var isHost = false
     var remainingTime: TimeInterval?
     var isCalibrated = false
-    var isScreenTimeAuthorized: Bool { screenTimeService.isAuthorized }
+    var isScreenTimeAuthorized: Bool { permissionsService.isScreenTimeAuthorized }
 
     // MARK: - Host
 
@@ -54,7 +56,7 @@ final class LiveSessionInteractor: SessionInteractor {
     // MARK: - Screen Time
 
     func requestScreenTimeAuthorization() async throws {
-        try await screenTimeService.requestAuthorization()
+
     }
 
     // MARK: - Private
@@ -64,4 +66,5 @@ final class LiveSessionInteractor: SessionInteractor {
     private let motionService: any MotionService
     private let screenTimeService: any ScreenTimeService
     private let profileService: any ProfileService
+    private let permissionsService: any PermissionsService
 }

@@ -27,6 +27,7 @@ struct StudySphereApp: App {
         let nearbyInteractionService = LiveNearbyInteractionService()
         let motionService = LiveMotionService()
         let screenTimeService = LiveScreenTimeService()
+        let permissionService = LivePermissionService()
 
         // 3. Create interactors
         let sessionInteractor = LiveSessionInteractor(
@@ -34,7 +35,8 @@ struct StudySphereApp: App {
             nearbyInteractionService: nearbyInteractionService,
             motionService: motionService,
             screenTimeService: screenTimeService,
-            profileService: profileService)
+            profileService: profileService,
+            permissionsService: permissionService)
         let distractionInteractor = LiveDistractionInteractor(
             motionService: motionService,
             screenTimeService: screenTimeService,
@@ -76,7 +78,12 @@ struct StudySphereApp: App {
         let appSelectionViewModelFactory: AppSelectionViewModel.Factory = .routed { router in
             AppSelectionViewModel(
                 router: router,
-                screenTimeService: screenTimeService)
+                screenTimeService: screenTimeService,
+                permissionsService: permissionService
+            )
+        }
+        let screenTimeViewModelFactory = ScreenTimeViewModel.Factory {
+            ScreenTimeViewModel(screenTimeService: screenTimeService, permissionsService: permissionService)
         }
 
         // 6. Assign to @State properties
@@ -88,6 +95,7 @@ struct StudySphereApp: App {
         _profileViewModelFactory = State(initialValue: profileViewModelFactory)
         _appSelectionViewModelFactory = State(initialValue: appSelectionViewModelFactory)
         _profileService = State(initialValue: profileService)
+        _screenTimeViewModelFactory = State(initialValue: screenTimeViewModelFactory)
     }
 
     // MARK: Internal
@@ -102,6 +110,7 @@ struct StudySphereApp: App {
                 .environment(activeSessionViewModelFactory)
                 .environment(profileViewModelFactory)
                 .environment(appSelectionViewModelFactory)
+                .environment(screenTimeViewModelFactory)
                 .task { profileService.load() }
         }
     }
@@ -116,4 +125,5 @@ struct StudySphereApp: App {
     @State private var profileViewModelFactory: ProfileViewModel.Factory
     @State private var appSelectionViewModelFactory: AppSelectionViewModel.Factory
     @State private var profileService: LiveProfileService
+    @State private var screenTimeViewModelFactory: ScreenTimeViewModel.Factory
 }

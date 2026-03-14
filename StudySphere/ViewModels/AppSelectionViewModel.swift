@@ -10,7 +10,7 @@ final class AppSelectionViewModel {
     }
 
     struct State: Equatable {
-        @Bound(\AppSelectionViewModel.screenTimeService) var isAuthorized = false
+        @Bound(\AppSelectionViewModel.permissionsService) var isScreenTimeAuthorized: Bool = false
     }
 
     var state = State()
@@ -26,4 +26,5 @@ final class AppSelectionViewModel {
 
     private let router: Router<AppScene>
     private let screenTimeService: any ScreenTimeService
+    private let permissionsService: any PermissionsService
 }
