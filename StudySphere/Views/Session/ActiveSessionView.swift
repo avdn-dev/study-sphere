@@ -127,7 +127,7 @@ struct ActiveSessionView: View {
                         dismiss()
                     }
                 }
-                .buttonStyle(.borderedProminent)
+                .glassButton()
             } else {
                 Button("Leave Session", role: .destructive) {
                     Task {
@@ -135,7 +135,7 @@ struct ActiveSessionView: View {
                         dismiss()
                     }
                 }
-                .buttonStyle(.borderedProminent)
+                .glassButton()
             }
         }
     }
@@ -296,7 +296,7 @@ struct ActiveSessionView: View {
                 }
                 .frame(maxWidth: .infinity)
             }
-            .buttonStyle(.borderedProminent)
+            .glassButton()
             .controlSize(.large)
 
             Text("Participants join from Discover while this lobby is open.")
@@ -336,7 +336,7 @@ struct ActiveSessionView: View {
                     dismiss()
                 }
             }
-            .buttonStyle(.borderedProminent)
+            .glassButton()
             .controlSize(.large)
         }
         .padding(.horizontal)

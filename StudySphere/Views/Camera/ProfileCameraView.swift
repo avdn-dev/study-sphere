@@ -140,7 +140,7 @@ struct ProfileCameraView: View {
       Button("Open Settings") {
         Task { await viewModel.handle(.openSettings) }
       }
-      .buttonStyle(.borderedProminent)
+      .glassButton()
       .padding(.top, 8)
 
       Button("Cancel") {

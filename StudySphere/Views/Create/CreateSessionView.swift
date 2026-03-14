@@ -128,7 +128,7 @@ struct CreateSessionView: View {
           }
           .frame(maxWidth: .infinity)
         }
-        .buttonStyle(.bordered)
+        .glassButton(prominent: false)
       } else {
         VStack(alignment: .leading, spacing: 8) {
           Text("Keep distractions out of your circle by blocking apps during the session.")
@@ -147,7 +147,7 @@ struct CreateSessionView: View {
             }
             .frame(maxWidth: .infinity)
           }
-          .buttonStyle(.borderedProminent)
+          .glassButton()
         }
       }
     }
@@ -180,7 +180,7 @@ struct CreateSessionView: View {
         .frame(maxWidth: .infinity)
       }
     }
-    .buttonStyle(.borderedProminent)
+    .glassButton()
     .disabled(isDisabled)
   }
 }

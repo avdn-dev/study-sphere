@@ -34,7 +34,7 @@ struct FocusView: View {
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 14)
                 }
-                .buttonStyle(.borderedProminent)
+                .glassButton()
                 .tint(.blue)
 
                 HStack {
@@ -57,7 +57,7 @@ struct FocusView: View {
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 14)
                 }
-                .buttonStyle(.borderedProminent)
+                .glassButton()
                 .tint(.green)
             }
             .padding(.horizontal, 32)

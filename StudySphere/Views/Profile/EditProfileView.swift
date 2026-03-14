@@ -39,7 +39,7 @@ struct EditProfileView: View {
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 12)
                 }
-                .buttonStyle(.plain)
+                .glassButton()
                 .listRowBackground(Color.clear)
             }
 
@@ -61,7 +61,7 @@ struct EditProfileView: View {
                         .frame(maxWidth: .infinity)
                         .bold()
                 }
-                .buttonStyle(.borderedProminent)
+                .glassButton()
                 .disabled(
                     editedName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
                     || (!hasNameChange && !hasImageChange)
