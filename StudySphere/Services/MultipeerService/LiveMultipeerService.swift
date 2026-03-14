@@ -41,68 +41,147 @@ final class LiveMultipeerService: MultipeerService {
     private let _roomBrowser: MCNearbyServiceBrowser
     private let _delegate: _MCDelegate
     
+    private(set) var discoveredRooms: Result<[MCPeerID : RoomDiscoveryInfo], any Error>?
+    
     private var _roomsInfo: [MCPeerID : RoomDiscoveryInfo] = [:] {
         didSet {
-            guard discoveredRooms != nil else { return }
             guard _roomsInfo != oldValue else { return }
             discoveredRooms = .success(_roomsInfo)
+            switch discoveredRooms {
+            case .success:
+                discoveredRooms = .success(_roomsInfo)
+            case .failure, nil:
+                return
+            }
         }
     }
     
     func startLookingForRooms() {
         _roomBrowser.startBrowsingForPeers()
-        state = .lookingForRooms
+        discoveredRooms = .success([:])
     }
     
     func stopLookingForRooms() {
-        _roomBrowser.stopBrowsingForPeers()
-        discoveredRooms = nil
-        state = .idle
+        _stopLookingForRooms(with: nil)
     }
     
-    private(set) var discoveredRooms: Result<[MCPeerID : RoomDiscoveryInfo], any Error>?
+    func _stopLookingForRooms(with error: (any Error)?) {
+        _roomBrowser.stopBrowsingForPeers()
+        if let error = error {
+            discoveredRooms = .failure(error)
+        } else {
+            discoveredRooms = nil
+        }
+        state = .idle
+        _roomsInfo = [:]
+    }
+    
+    // MARK: - Joining A Room
+    
+    func joinRoom(with info: RoomDiscoveryInfo) throws {
+        switch self.discoveredRooms {
+        case .success(let rooms):
+            guard rooms.keys.contains(info.peerID) else {
+                throw MultipeerServiceError.roomInfoInvalid
+            }
+            
+        case .failure(let failure):
+            throw failure
+        case .none:
+            throw MultipeerServiceError.notLookingForRooms
+        }
+    }
     
     // MARK: - Room Hosting
     
     private let _participantBrowser: MCNearbyServiceBrowser
-    
-    private var _participantsInfo: [MCPeerID : ParticipantDiscoveryInfo] = [:] {
-        didSet {
-            guard discoveredParticipants != nil else { return }
-            guard _participantsInfo != oldValue else { return }
-            discoveredParticipants = .success(_participantsInfo)
-        }
-    }
-
-    func startLookingForParticipants() {
-        _participantBrowser.startBrowsingForPeers()
-        state = .lookingForParticipants
-    }
-    
-    func stopLookingForParticipants() {
-        _participantBrowser.stopBrowsingForPeers()
-        discoveredParticipants = nil
-        state = .idle
-    }
+    private var _roomAdvertiser: MCNearbyServiceAdvertiser?
+    private var _currentRoomInfo: RoomDiscoveryInfo?
     
     private(set) var discoveredParticipants: Result<[MCPeerID : ParticipantDiscoveryInfo], any Error>?
     
+    private var _participantsInfo: [MCPeerID : ParticipantDiscoveryInfo] = [:] {
+        didSet {
+            guard _participantsInfo != oldValue else { return }
+            switch discoveredParticipants {
+            case .success:
+                discoveredParticipants = .success(_participantsInfo)
+            case .failure, nil:
+                return
+            }
+        }
+    }
+
+    func startLookingForParticipants() throws {
+        guard let roomAdvertiser = self._roomAdvertiser else {
+            throw MultipeerServiceError.missingRoom
+        }
+        _participantBrowser.startBrowsingForPeers()
+        roomAdvertiser.startAdvertisingPeer()
+        state = .lookingForParticipants
+        discoveredParticipants = .success([:])
+    }
+    
+    func stopLookingForParticipants() {
+        _stopLookingForParticipants(with: nil)
+    }
+    
+    private func _stopLookingForParticipants(with error: (any Error)?) {
+        _participantBrowser.stopBrowsingForPeers()
+        _roomAdvertiser?.stopAdvertisingPeer()
+        discoveredParticipants = nil
+        state = .idle
+        _participantsInfo.removeAll()
+    }
+    
+    var currentRoom: RoomDiscoveryInfo? {
+        get {
+            _currentRoomInfo
+        }
+    }
+        
+    func createNewRoom(with info: RoomDiscoveryInfo) throws {
+        guard self._currentRoomInfo != info else { return }
+        switch self.state {
+        case .lookingForParticipants:
+            logger.warning("Don't change the room while it is looking for participants")
+            stopLookingForParticipants()
+        case .connectedAsHost:
+            logger.error("Close the room first before changing it")
+            #warning("TODO: Handle host")
+        case .lookingForRooms:
+            logger.warning("Don't change the room while looking for a room.")
+            stopLookingForRooms()
+        case .connectedAsParticipant:
+            logger.error("Disconnect from the room first before creating a new one")
+            #warning("TODO: Handle participant")
+        case .idle:
+            break
+        }
+        self._currentRoomInfo = info
+        self._roomAdvertiser = MCNearbyServiceAdvertiser(
+            peer: peerID,
+            discoveryInfo: info.discoveryInfo,
+            serviceType: Self.roomHostingServiceType
+        )
+    }
+    
     // MARK: - Delegate
     
-    private final class _MCDelegate: NSObject, MCNearbyServiceBrowserDelegate {
+    private final class _MCDelegate: NSObject,
+        MCNearbyServiceBrowserDelegate, MCNearbyServiceAdvertiserDelegate
+    {
         unowned var parent: LiveMultipeerService!
+        
+        // Browser Delegate
         
         func browser(_ browser: MCNearbyServiceBrowser,
                      didNotStartBrowsingForPeers error: any Error) {
             switch browser {
             case self.parent._roomBrowser:
-                parent.state = .idle
-                parent._discoveredRooms = .failure(error)
-                parent._roomsInfo.removeAll()
+                parent._stopLookingForRooms(with: error)
             case self.parent._participantBrowser:
-                parent.state = .idle
-                parent._discoveredRooms = .failure(error)
-                parent._participantsInfo.removeAll()
+                parent._stopLookingForParticipants(with: error)
             default:
                 preconditionFailure()
             }
@@ -137,7 +216,8 @@ final class LiveMultipeerService: MultipeerService {
             }
         }
         
-        func browser(_ browser: MCNearbyServiceBrowser, lostPeer peerID: MCPeerID) {
+        func browser(_ browser: MCNearbyServiceBrowser,
+                     lostPeer peerID: MCPeerID) {
             switch browser {
             case self.parent._roomBrowser:
                 guard self.parent._roomsInfo.keys.contains(peerID) else {
@@ -151,6 +231,31 @@ final class LiveMultipeerService: MultipeerService {
                     return
                 }
                 parent._participantsInfo.removeValue(forKey: peerID)
+            default:
+                preconditionFailure()
+            }
+        }
+        
+        // Advertiser Delegate
+        
+        func advertiser(_ advertiser: MCNearbyServiceAdvertiser,
+                        didNotStartAdvertisingPeer error: any Error) {
+            switch advertiser {
+            case self.parent._roomAdvertiser:
+                parent.logger.error("Failed to advertise room: \(error)")
+            default:
+                preconditionFailure()
+            }
+        }
+        
+        func advertiser(_ advertiser: MCNearbyServiceAdvertiser,
+                        didReceiveInvitationFromPeer peerID: MCPeerID,
+                        withContext context: Data?,
+                        invitationHandler: @escaping (Bool, MCSession?) -> Void) {
+            switch advertiser {
+            case self.parent._roomAdvertiser:
+                parent.logger.trace("Reaceived invitation from: \(peerID)")
+                #warning("TODO: Handle invitations")
             default:
                 preconditionFailure()
             }

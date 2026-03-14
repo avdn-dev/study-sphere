@@ -23,6 +23,12 @@ struct RoomDiscoveryInfo: Equatable {
         self.roomName = roomName
     }
     
+    var discoveryInfo: [String : String] {
+        [
+            Keys.roomName: roomName
+        ]
+    }
+    
 }
 
 struct ParticipantDiscoveryInfo: Equatable {
@@ -47,11 +53,19 @@ struct ParticipantDiscoveryInfo: Equatable {
         self.participantName = participantName
     }
     
+    var discoveryInfo: [String : String] {
+        [
+            Keys.participantName: participantName
+        ]
+    }
+    
 }
 
-//@Stubbable
-//@Spyable
-protocol MultipeerService: AnyObject, Observable {
+@Stubbable
+@Spyable
+protocol MultipeerService: AnyObject {
+    
+    @StubbableDefault(MultipeerServiceState.idle)
     var state: MultipeerServiceState { get }
     var displayName: String { get }
     
@@ -61,11 +75,18 @@ protocol MultipeerService: AnyObject, Observable {
     func startLookingForRooms()
     func stopLookingForRooms()
     
+    // Joining A Room
+    func joinRoom(with info: RoomDiscoveryInfo) throws
+    
     // Room Hosting
     var discoveredParticipants: Result<[MCPeerID : ParticipantDiscoveryInfo], any Error>? { get }
     var isLookingForParticipants: Bool { get }
-    func startLookingForParticipants()
+    func startLookingForParticipants() throws
     func stopLookingForParticipants()
+    
+    var currentRoom: RoomDiscoveryInfo? { get }
+    func createNewRoom(with info: RoomDiscoveryInfo) throws
+    
 }
 
 extension MultipeerService {
@@ -89,7 +110,10 @@ extension MultipeerService {
 }
 
 enum MultipeerServiceError: Swift.Error {
-    
+    case missingRoom
+    case alreadyInRoom
+    case notLookingForRooms
+    case roomInfoInvalid
 }
 
 enum MultipeerServiceState {
