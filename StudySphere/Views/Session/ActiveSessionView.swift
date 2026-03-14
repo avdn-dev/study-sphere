@@ -122,6 +122,15 @@ struct ActiveSessionView: View {
         .onDisappear {
             simulator.stop()
         }
+        .toolbar {
+          if viewModel.state.activeSession?.isActive == false {
+            ToolbarItem(placement: .topBarLeading) {
+              Button("End session", systemImage: "xmark") {
+                dismiss()
+              }
+            }
+          }
+        }
     }
 
     // MARK: - Coordinate Mapping
