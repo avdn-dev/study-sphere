@@ -13,10 +13,8 @@ enum AppScene: @MainActor NavigationScene {
 // MARK: - AppTab
 
 enum AppTab: Int, TabDestination {
-    case discover = 0
-    case create = 1
-    case analytics = 2
-    case profile = 3
+    case focus = 0
+    case analytics = 1
 }
 
 // MARK: - AppPush
@@ -36,10 +34,16 @@ enum AppPush: PushDestination {
 
 enum AppSheet: @MainActor SheetDestination {
     case appSelection
+    case profile
+    case createSession
+    case discover
 
     var id: String {
         switch self {
         case .appSelection: "appSelection"
+        case .profile: "profile"
+        case .createSession: "createSession"
+        case .discover: "discover"
         }
     }
 
@@ -47,6 +51,12 @@ enum AppSheet: @MainActor SheetDestination {
         switch self {
         case .appSelection:
             AppSelectionView()
+        case .profile:
+            ProfileView()
+        case .createSession:
+            NavigationStack { CreateSessionView() }
+        case .discover:
+            NavigationStack { DiscoverView() }
         }
     }
 }

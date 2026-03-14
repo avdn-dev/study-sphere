@@ -52,6 +52,13 @@
 			);
 			target = 425D70552F650202003B0B43 /* ShieldConfiguration */;
 		};
+		96CFA0F52F63EF8F009AFF35 /* Exceptions for "StudySphere" folder in "StudySphere" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 96CFA0F22F63EF8F009AFF34 /* StudySphere */;
+		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -65,6 +72,9 @@
 		};
 		96CFA0F52F63EF8F009AFF34 /* StudySphere */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				96CFA0F52F63EF8F009AFF35 /* Exceptions for "StudySphere" folder in "StudySphere" target */,
+			);
 			path = StudySphere;
 			sourceTree = "<group>";
 		};
@@ -452,6 +462,7 @@
 				DEVELOPMENT_TEAM = VPNR8289C6;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = StudySphere/Info.plist;
 				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "Local network access is required in order to send messages to other devices.";
 				INFOPLIST_KEY_NSMotionUsageDescription = "Used to detect when the device is stationary during a study session.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -490,6 +501,7 @@
 				DEVELOPMENT_TEAM = VPNR8289C6;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = StudySphere/Info.plist;
 				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "Local network access is required in order to send messages to other devices.";
 				INFOPLIST_KEY_NSMotionUsageDescription = "Used to detect when the device is stationary during a study session.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;

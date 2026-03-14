@@ -20,7 +20,7 @@ struct UserProfile: Codable, Equatable, Identifiable, Sendable {
         self.peerIDData = peerIDData
     }
 
-    init(from decoder: Decoder) throws {
+    init(from decoder: any Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         id = try container.decode(UUID.self, forKey: .id)
         name = try container.decode(String.self, forKey: .name)

@@ -49,6 +49,7 @@ final class CreateSessionViewModel {
                 requireStillness: state.requireStillness)
             await sessionInteractor.createSession(settings: settings)
             state.isCreating = false
+            router.dismissSheet()
             router.present(fullScreen: .activeSession)
         }
     }

@@ -107,8 +107,13 @@ protocol MultipeerService: AnyObject {
     func setCurrentSession(_ session: StudySession) throws
     
     // Sending Messages
-    var messages: AsyncStream<SessionMessage> { get }
-    func send(message: SessionMessage) throws
+    var receivedMessages: AsyncStream<(MCPeerID, SessionMessage)> { get }
+    func send(_ message: SessionMessage, to peers: [MCPeerID], reliable: Bool) throws
+    func sendToAll(_ message: SessionMessage, reliable: Bool) throws
+
+    // Connection State
+    var connectedPeers: [MCPeerID] { get }
+    var peerDisconnected: AsyncStream<MCPeerID> { get }
     
 }
 
@@ -128,10 +133,6 @@ extension MultipeerService {
     
     var isLookingForParticipants: Bool {
         state == .lookingForParticipants
-    }
-    
-    var messages: AsyncStream<SessionMessage> {
-        preconditionFailure("Not implemented")
     }
     
 }
