@@ -7,6 +7,7 @@ protocol MotionService: AnyObject {
     var isStationary: Bool { get }
     var isMonitoring: Bool { get }
 
+    func requestPermission() async -> Bool
     func startMonitoring(sensitivity: Double)
     func stopMonitoring()
 }
