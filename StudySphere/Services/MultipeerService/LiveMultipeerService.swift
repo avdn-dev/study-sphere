@@ -114,6 +114,13 @@ final class LiveMultipeerService: MultipeerService {
         }
     }
     
+    @ObservationIgnored
+    var joinRequestHandler: ((MCPeerID, JoinRequest) async throws -> Bool)?
+    
+    func inviteParticipantToRoom() async throws -> Bool {
+        return false
+    }
+    
     // MARK: - Room Hosting
     
     private let _participantBrowser: MCNearbyServiceBrowser
@@ -320,7 +327,37 @@ final class LiveMultipeerService: MultipeerService {
             switch advertiser {
             case self.parent._roomAdvertiser:
                 parent.logger.trace("Reaceived invitation from: \(peerID)")
-                #warning("TODO: Handle invitations")
+                guard let joinRequestHandler = parent.joinRequestHandler else {
+                    parent.logger.error("Received invitation but no handler set")
+                    invitationHandler(false, nil)
+                    return
+                }
+                guard let context = context else {
+                    parent.logger.warning("\(peerID) Missing context, ignoring")
+                    invitationHandler(false, nil)
+                    return
+                }
+                let joinRequest: JoinRequest
+                do {
+                    joinRequest = try decoder.decode(JoinRequest.self, from: context)
+                } catch {
+                    parent.logger.warning("\(peerID) join request is malformed with error: \(error), ignoring")
+                    invitationHandler(false, nil)
+                    return
+                }
+                Task.immediate {
+                    do {
+                        guard try await joinRequestHandler(peerID, joinRequest) else {
+                            parent.logger.trace("Join request for \(peerID) rejected")
+                            return
+                        }
+                        parent.logger.trace("Join request for \(peerID) accepted")
+                        invitationHandler(true, self.parent._session)
+                    } catch {
+                        parent.logger.warning("Join request handler for \(peerID) threw an error: \(error)")
+                        invitationHandler(false, nil)
+                    }
+                }
             default:
                 preconditionFailure()
             }
@@ -355,7 +392,7 @@ final class LiveMultipeerService: MultipeerService {
                         continuation.resume(returning: false)
                         parent._roomJoinContinuation = nil
                     case .connecting:
-                        break
+                        parent.logger.trace("\(peerID) connecting...")
                     case .connected:
                         continuation.resume(returning: true)
                         parent._roomJoinContinuation = nil

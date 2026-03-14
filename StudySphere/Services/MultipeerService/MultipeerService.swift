@@ -70,8 +70,8 @@ struct RoomConfiguration {
     var displayName: String
 }
 
-@Stubbable
-@Spyable
+//@Stubbable
+//@Spyable
 protocol MultipeerService: AnyObject {
     
     @StubbableDefault(MultipeerServiceState.idle)
@@ -81,11 +81,18 @@ protocol MultipeerService: AnyObject {
     // Room Browsing
     var discoveredRooms: Result<[MCPeerID : RoomDiscoveryInfo], any Error>? { get }
     var isLookingForRooms: Bool { get }
-    func startLookingForRooms()
+    func startLookingForRooms() throws
     func stopLookingForRooms()
     
     // Joining A Room
     func joinRoom(with info: RoomDiscoveryInfo) async throws -> Bool
+    
+    var joinRequestHandler: ((
+        _ peerID: MCPeerID,
+        _ joinRequest: JoinRequest
+    ) async throws -> Bool)? { get set }
+    
+    func inviteParticipantToRoom() async throws -> Bool
     
     // Room Hosting
     var discoveredParticipants: Result<[MCPeerID : ParticipantDiscoveryInfo], any Error>? { get }
