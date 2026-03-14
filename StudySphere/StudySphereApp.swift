@@ -22,7 +22,7 @@ struct StudySphereApp: App {
 
         // 2. Create services
         let profileService = LiveProfileService(modelContext: modelContext)
-        let multipeerService = LiveMultipeerService(profileService: profileService)
+        let multipeerService = LiveMultipeerService(peerID: profileService.peerID!)
         let nearbyInteractionService = LiveNearbyInteractionService()
         let motionService = LiveMotionService()
         let screenTimeService = LiveScreenTimeService()
