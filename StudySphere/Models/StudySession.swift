@@ -1,15 +1,10 @@
 import Foundation
+import Observation
 
+@Observable
 final class StudySession: Codable, Identifiable, Sendable {
     let id: UUID
-    let hostName: String
-    let hostPeerIDData: Data
-    var settings: SessionSettings
-    var startedAt: Date?
-    var endedAt: Date?
-    var participants: [Participant]
-    
-    var isActive: Bool { startedAt != nil && endedAt == nil }
+    let sessionName: String
 }
 
 extension StudySession: Equatable {
@@ -17,3 +12,5 @@ extension StudySession: Equatable {
         return lhs.id == rhs.id
     }
 }
+
+

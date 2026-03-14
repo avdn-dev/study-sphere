@@ -118,7 +118,7 @@ final class LiveMultipeerService: MultipeerService {
     
     private let _participantBrowser: MCNearbyServiceBrowser
     private var _roomAdvertiser: MCNearbyServiceAdvertiser?
-    private var _currentRoomInfo: RoomDiscoveryInfo?
+    private var _currentStudySession: StudySession?
     
     private(set) var discoveredParticipants: Result<[MCPeerID : ParticipantDiscoveryInfo], any Error>?
     
@@ -156,14 +156,43 @@ final class LiveMultipeerService: MultipeerService {
         _participantsInfo.removeAll()
     }
     
-    var currentRoom: RoomDiscoveryInfo? {
+    var currentStudySession: StudySession? {
         get {
-            _currentRoomInfo
+            _currentStudySession
         }
     }
         
-    func createNewRoom(with info: RoomDiscoveryInfo) throws {
-        guard self._currentRoomInfo != info else { return }
+//    func createNewRoom(with info: RoomDiscoveryInfo) throws {
+//        guard self._currentRoomInfo != info else { return }
+//        switch self.state {
+//        case .lookingForParticipants:
+//            logger.warning("Don't change the room while it is looking for participants")
+//            stopLookingForParticipants()
+//        case .connectedAsHost:
+//            logger.error("Close the room first before changing it")
+//            #warning("TODO: Handle host")
+//        case .lookingForRooms:
+//            logger.warning("Don't change the room while looking for a room.")
+//            stopLookingForRooms()
+//        case .connectedAsParticipant:
+//            logger.error("Disconnect from the room first before creating a new one")
+//            #warning("TODO: Handle participant")
+//        case .joiningRoom:
+//            logger.error("Cannot create new room while joining one")
+//            #warning("TODO: Handle joining room")
+//        case .idle:
+//            break
+//        }
+//        self._currentRoomInfo = info
+//        self._roomAdvertiser = MCNearbyServiceAdvertiser(
+//            peer: peerID,
+//            discoveryInfo: info.discoveryInfo,
+//            serviceType: Self.roomHostingServiceType
+//        )
+//    }
+    
+    func setCurrentSession(_ session: StudySession) throws {
+        guard self._currentStudySession != session else { return }
         switch self.state {
         case .lookingForParticipants:
             logger.warning("Don't change the room while it is looking for participants")
@@ -183,10 +212,13 @@ final class LiveMultipeerService: MultipeerService {
         case .idle:
             break
         }
-        self._currentRoomInfo = info
+        self._currentStudySession = session
         self._roomAdvertiser = MCNearbyServiceAdvertiser(
             peer: peerID,
-            discoveryInfo: info.discoveryInfo,
+            discoveryInfo: RoomDiscoveryInfo(
+                peerID: peerID,
+                roomName: session.sessionName
+            ).discoveryInfo,
             serviceType: Self.roomHostingServiceType
         )
     }

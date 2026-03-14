@@ -23,6 +23,11 @@ struct RoomDiscoveryInfo: Equatable {
         self.roomName = roomName
     }
     
+    init(peerID: MCPeerID, roomName: String) {
+        self.peerID = peerID
+        self.roomName = roomName
+    }
+    
     var discoveryInfo: [String : String] {
         [
             Keys.roomName: roomName
@@ -88,7 +93,8 @@ protocol MultipeerService: AnyObject {
     func startLookingForParticipants() throws
     func stopLookingForParticipants()
     
-    var currentRoom: RoomDiscoveryInfo? { get }
+    var currentStudySession: StudySession? { get }
+    func setCurrentSession(_ session: StudySession) throws
     
     // Sending Messages
     #warning("TODO: Decide on what messages to send")
