@@ -107,14 +107,16 @@ protocol MultipeerService: AnyObject {
     func setCurrentSession(_ session: StudySession) throws
     
     // Sending Messages
-    var receivedMessages: AsyncStream<(MCPeerID, SessionMessage)> { get }
     func send(_ message: SessionMessage, to peers: [MCPeerID], reliable: Bool) throws
     func sendToAll(_ message: SessionMessage, reliable: Bool) throws
 
+    // Event Callbacks
+    var messageHandler: ((_ peerID: MCPeerID, _ message: SessionMessage) -> Void)? { get set }
+    var peerConnectedHandler: ((_ peerID: MCPeerID) -> Void)? { get set }
+    var peerDisconnectedHandler: ((_ peerID: MCPeerID) -> Void)? { get set }
+
     // Connection State
     var connectedPeers: [MCPeerID] { get }
-    var peerConnected: AsyncStream<MCPeerID> { get }
-    var peerDisconnected: AsyncStream<MCPeerID> { get }
     func disconnect()
     
 }

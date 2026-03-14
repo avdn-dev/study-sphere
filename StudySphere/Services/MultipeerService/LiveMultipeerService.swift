@@ -23,49 +23,14 @@ final class LiveMultipeerService: MultipeerService {
         peerID.displayName
     }
 
-    // MARK: - Message & Disconnect Streams
+    // MARK: - Event Callbacks
 
     @ObservationIgnored
-    private var _receivedMessagesContinuation: AsyncStream<(MCPeerID, SessionMessage)>.Continuation?
+    var messageHandler: ((_ peerID: MCPeerID, _ message: SessionMessage) -> Void)?
     @ObservationIgnored
-    private var _receivedMessagesStream: AsyncStream<(MCPeerID, SessionMessage)>?
-
-    var receivedMessages: AsyncStream<(MCPeerID, SessionMessage)> {
-        if let stream = _receivedMessagesStream { return stream }
-        let stream = AsyncStream<(MCPeerID, SessionMessage)> { continuation in
-            self._receivedMessagesContinuation = continuation
-        }
-        _receivedMessagesStream = stream
-        return stream
-    }
-
+    var peerConnectedHandler: ((_ peerID: MCPeerID) -> Void)?
     @ObservationIgnored
-    private var _peerConnectedContinuation: AsyncStream<MCPeerID>.Continuation?
-    @ObservationIgnored
-    private var _peerConnectedStream: AsyncStream<MCPeerID>?
-
-    var peerConnected: AsyncStream<MCPeerID> {
-        if let stream = _peerConnectedStream { return stream }
-        let stream = AsyncStream<MCPeerID> { continuation in
-            self._peerConnectedContinuation = continuation
-        }
-        _peerConnectedStream = stream
-        return stream
-    }
-
-    @ObservationIgnored
-    private var _peerDisconnectedContinuation: AsyncStream<MCPeerID>.Continuation?
-    @ObservationIgnored
-    private var _peerDisconnectedStream: AsyncStream<MCPeerID>?
-
-    var peerDisconnected: AsyncStream<MCPeerID> {
-        if let stream = _peerDisconnectedStream { return stream }
-        let stream = AsyncStream<MCPeerID> { continuation in
-            self._peerDisconnectedContinuation = continuation
-        }
-        _peerDisconnectedStream = stream
-        return stream
-    }
+    var peerDisconnectedHandler: ((_ peerID: MCPeerID) -> Void)?
 
     var connectedPeers: [MCPeerID] {
         _session?.connectedPeers ?? []
@@ -288,20 +253,9 @@ final class LiveMultipeerService: MultipeerService {
         _currentStudySession = nil
         state = .idle
 
-        // Finish old continuations and clear streams so they are
-        // recreated on next access. AsyncStream is single-consumer;
-        // reusing a consumed stream silently drops all yielded values.
-        _receivedMessagesContinuation?.finish()
-        _receivedMessagesContinuation = nil
-        _receivedMessagesStream = nil
-
-        _peerConnectedContinuation?.finish()
-        _peerConnectedContinuation = nil
-        _peerConnectedStream = nil
-
-        _peerDisconnectedContinuation?.finish()
-        _peerDisconnectedContinuation = nil
-        _peerDisconnectedStream = nil
+        messageHandler = nil
+        peerConnectedHandler = nil
+        peerDisconnectedHandler = nil
     }
 
     // MARK: - Sending Messages
@@ -503,10 +457,14 @@ final class LiveMultipeerService: MultipeerService {
                     if parent.state == .lookingForParticipants {
                         parent.state = .connectedAsHost
                     }
-                    parent._peerConnectedContinuation?.yield(peerID)
+                    Task { @MainActor [parent] in
+                        parent?.peerConnectedHandler?(peerID)
+                    }
                 case .notConnected:
                     parent.logger.trace("Peer \(peerID) disconnected")
-                    parent._peerDisconnectedContinuation?.yield(peerID)
+                    Task { @MainActor [parent] in
+                        parent?.peerDisconnectedHandler?(peerID)
+                    }
                 case .connecting:
                     parent.logger.trace("Peer \(peerID) connecting...")
                 @unknown default:
@@ -517,7 +475,9 @@ final class LiveMultipeerService: MultipeerService {
                 switch state {
                 case .notConnected:
                     parent.logger.trace("Leader \(peerID) disconnected")
-                    parent._peerDisconnectedContinuation?.yield(peerID)
+                    Task { @MainActor [parent] in
+                        parent?.peerDisconnectedHandler?(peerID)
+                    }
                 case .connecting:
                     parent.logger.trace("Leader \(peerID) reconnecting...")
                 case .connected:
@@ -536,7 +496,9 @@ final class LiveMultipeerService: MultipeerService {
                      fromPeer peerID: MCPeerID) {
             do {
                 let message = try LiveMultipeerService.decoder.decode(SessionMessage.self, from: data)
-                parent._receivedMessagesContinuation?.yield((peerID, message))
+                Task { @MainActor [parent] in
+                    parent?.messageHandler?(peerID, message)
+                }
             } catch {
                 parent.logger.warning("Failed to decode message from \(peerID): \(error)")
             }

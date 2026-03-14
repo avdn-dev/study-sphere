@@ -61,9 +61,6 @@ final class LiveStudySessionService: StudySessionService {
 
     // Position broadcast task
     private var positionBroadcastTask: Task<Void, Never>?
-    private var messageReceiveTask: Task<Void, Never>?
-    private var disconnectListenTask: Task<Void, Never>?
-    private var peerConnectedTask: Task<Void, Never>?
 
     /// Responses queued until the MC connection is fully established
     private var pendingJoinResponses: [MCPeerID: SessionMessage] = [:]
@@ -116,10 +113,16 @@ final class LiveStudySessionService: StudySessionService {
             return self.handleJoinRequest(peerID: peerID, joinRequest: joinRequest)
         }
 
-        // Start listening for messages, connections, and disconnections
-        startMessageReceiveLoop()
-        startPeerConnectedLoop()
-        startDisconnectListenLoop()
+        // Set up event handlers
+        multipeerService.messageHandler = { [weak self] peerID, message in
+            self?.handleMessage(message, from: peerID)
+        }
+        multipeerService.peerConnectedHandler = { [weak self] peerID in
+            self?.handlePeerConnected(peerID)
+        }
+        multipeerService.peerDisconnectedHandler = { [weak self] peerID in
+            self?.handlePeerDisconnect(peerID)
+        }
 
         logger.info("Hosting session: \(session.settings.sessionName)")
     }
@@ -192,18 +195,20 @@ final class LiveStudySessionService: StudySessionService {
             peerIDData: profile.peerIDData
         )
 
-        // Start listening BEFORE connecting so the AsyncStream continuations
-        // are ready when the host sends the JoinResponse after connection.
-        startMessageReceiveLoop()
-        startDisconnectListenLoop()
+        // Set up event handlers BEFORE connecting so callbacks are ready
+        // when the host sends the JoinResponse after connection.
+        multipeerService.messageHandler = { [weak self] peerID, message in
+            self?.handleMessage(message, from: peerID)
+        }
+        multipeerService.peerDisconnectedHandler = { [weak self] peerID in
+            self?.handlePeerDisconnect(peerID)
+        }
 
         let accepted = try await multipeerService.joinRoom(with: room, joinRequest: joinRequest)
 
         guard accepted else {
-            messageReceiveTask?.cancel()
-            messageReceiveTask = nil
-            disconnectListenTask?.cancel()
-            disconnectListenTask = nil
+            multipeerService.messageHandler = nil
+            multipeerService.peerDisconnectedHandler = nil
             phase = .idle
             return false
         }
@@ -307,18 +312,7 @@ final class LiveStudySessionService: StudySessionService {
         return true
     }
 
-    // MARK: - Message Receive Loop
-
-    private func startMessageReceiveLoop() {
-        messageReceiveTask?.cancel()
-        messageReceiveTask = Task { [weak self] in
-            guard let self else { return }
-            for await (peerID, message) in multipeerService.receivedMessages {
-                guard !Task.isCancelled else { break }
-                self.handleMessage(message, from: peerID)
-            }
-        }
-    }
+    // MARK: - Message Handling
 
     private func handleMessage(_ message: SessionMessage, from peerID: MCPeerID) {
         switch message {
@@ -472,17 +466,6 @@ final class LiveStudySessionService: StudySessionService {
 
     // MARK: - Peer Connected Handling (Leader)
 
-    private func startPeerConnectedLoop() {
-        peerConnectedTask?.cancel()
-        peerConnectedTask = Task { [weak self] in
-            guard let self else { return }
-            for await connectedPeerID in multipeerService.peerConnected {
-                guard !Task.isCancelled else { break }
-                self.handlePeerConnected(connectedPeerID)
-            }
-        }
-    }
-
     private func handlePeerConnected(_ peerID: MCPeerID) {
         // Send the queued join response now that the connection is established
         if let response = pendingJoinResponses.removeValue(forKey: peerID) {
@@ -508,17 +491,6 @@ final class LiveStudySessionService: StudySessionService {
     }
 
     // MARK: - Disconnect Handling
-
-    private func startDisconnectListenLoop() {
-        disconnectListenTask?.cancel()
-        disconnectListenTask = Task { [weak self] in
-            guard let self else { return }
-            for await disconnectedPeerID in multipeerService.peerDisconnected {
-                guard !Task.isCancelled else { break }
-                self.handlePeerDisconnect(disconnectedPeerID)
-            }
-        }
-    }
 
     private func handlePeerDisconnect(_ peerID: MCPeerID) {
         guard let participantID = participantIDMap[peerID] else {
@@ -561,12 +533,10 @@ final class LiveStudySessionService: StudySessionService {
     private func cleanup() {
         positionBroadcastTask?.cancel()
         positionBroadcastTask = nil
-        messageReceiveTask?.cancel()
-        messageReceiveTask = nil
-        peerConnectedTask?.cancel()
-        peerConnectedTask = nil
-        disconnectListenTask?.cancel()
-        disconnectListenTask = nil
+
+        multipeerService.messageHandler = nil
+        multipeerService.peerConnectedHandler = nil
+        multipeerService.peerDisconnectedHandler = nil
 
         nearbyInteractionService.stopAllSessions()
         multipeerService.joinRequestHandler = nil
