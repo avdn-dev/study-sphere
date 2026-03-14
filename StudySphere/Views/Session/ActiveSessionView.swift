@@ -403,6 +403,7 @@ struct ActiveSessionView: View {
         case .distracted: Color(red: 0.75, green: 0.15, blue: 0.20)
         case .outsideCircle: Color(red: 0.75, green: 0.15, blue: 0.20).opacity(0.6)
         case .disconnected: .gray
+        case .reconnecting: .gray.opacity(0.6)
         }
     }
 }

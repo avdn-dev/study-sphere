@@ -5,4 +5,5 @@ enum ParticipantStatus: String, Codable, Equatable, Sendable {
     case distracted
     case outsideCircle
     case disconnected
+    case reconnecting
 }

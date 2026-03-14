@@ -68,6 +68,12 @@ final class LiveStudySessionService: StudySessionService {
     /// Timers that clean up ghost participants if MC connection never completes
     private var pendingJoinTimers: [MCPeerID: Task<Void, Never>] = [:]
 
+    /// Grace period before permanently removing a disconnected peer
+    private static let gracePeriodSeconds: TimeInterval = 15
+
+    /// Timers for grace periods of disconnected peers
+    private var disconnectTimers: [UUID: Task<Void, Never>] = [:]
+
     /// Key used for the peer's NI session with the leader (peer side only)
     private var leaderNIKey: String?
 
@@ -260,6 +266,11 @@ final class LiveStudySessionService: StudySessionService {
     private func handleJoinRequest(peerID: MCPeerID, joinRequest: JoinRequest) -> Bool {
         guard let session = activeSession else { return false }
 
+        // Check if this is a returning participant within grace period
+        if disconnectTimers[joinRequest.participantID] != nil {
+            return handleRejoin(peerID: peerID, joinRequest: joinRequest)
+        }
+
         // Check capacity
         guard participants.count < session.maxSize else {
             logger.info("Rejecting \(joinRequest.name): session full (\(self.participants.count)/\(session.maxSize))")
@@ -340,6 +351,49 @@ final class LiveStudySessionService: StudySessionService {
         }
 
         logger.info("Cleaned up failed join for \(peerID)")
+    }
+
+    private func handleRejoin(peerID: MCPeerID, joinRequest: JoinRequest) -> Bool {
+        let participantID = joinRequest.participantID
+
+        // Cancel the grace period timer
+        disconnectTimers[participantID]?.cancel()
+        disconnectTimers.removeValue(forKey: participantID)
+
+        // Restore peer maps with new MC connection
+        peerIDMap[participantID] = peerID
+        participantIDMap[peerID] = participantID
+
+        // Restore participant status
+        if let index = participants.firstIndex(where: { $0.id == participantID }) {
+            participants[index].status = .focused
+        }
+
+        // Re-establish NI session
+        let niKey = participantID.uuidString
+        let leaderTokenData = nearbyInteractionService.prepareSession(for: niKey)
+        nearbyInteractionService.runSession(for: niKey, peerDiscoveryTokenData: joinRequest.discoveryTokenData)
+
+        // Queue rejoin response
+        let response = SessionMessage.joinResponse(
+            JoinResponse(
+                accepted: true,
+                leaderDiscoveryTokenData: leaderTokenData,
+                session: activeSession,
+                participants: participants
+            )
+        )
+        pendingJoinResponses[peerID] = response
+
+        // Start timeout for MC connection
+        pendingJoinTimers[peerID] = Task { [weak self] in
+            try? await Task.sleep(for: .seconds(LiveMultipeerService.timeout + 5))
+            guard !Task.isCancelled else { return }
+            self?.cleanupFailedJoin(peerID: peerID)
+        }
+
+        logger.info("Peer \(participantID) rejoining session")
+        return true
     }
 
     // MARK: - Message Handling
@@ -537,34 +591,57 @@ final class LiveStudySessionService: StudySessionService {
             return
         }
 
-        // Remove participant from the session
-        participants.removeAll { $0.id == participantID }
+        // Mark participant as reconnecting instead of removing immediately
+        if let index = participants.firstIndex(where: { $0.id == participantID }) {
+            participants[index].status = .reconnecting
+        }
 
-        // Stop NI session for this peer
+        // Stop NI session (will be re-established if peer reconnects)
         nearbyInteractionService.stopSession(for: participantID.uuidString)
 
-        // Remove from maps
+        // Remove from MC maps (the MC connection is gone)
         peerIDMap.removeValue(forKey: participantID)
         participantIDMap.removeValue(forKey: peerID)
 
-        // Broadcast updated state if leader
-        if isLeader {
-            let stateUpdate = SessionMessage.sessionStateUpdate(
-                SessionStateUpdate(participants: participants)
-            )
-            do {
-                try multipeerService.sendToAll(stateUpdate, reliable: true)
-            } catch {
-                logger.error("Failed to broadcast disconnect update: \(error)")
-            }
+        // Broadcast updated state showing participant as reconnecting
+        broadcastStateUpdate()
 
-            // Revert to hosting phase if only the leader remains in lobby
-            if phase == .lobby && participants.count == 1 {
-                phase = .hosting
-            }
+        // Start grace period timer
+        disconnectTimers[participantID]?.cancel()
+        disconnectTimers[participantID] = Task { [weak self] in
+            try? await Task.sleep(for: .seconds(Self.gracePeriodSeconds))
+            guard !Task.isCancelled else { return }
+            self?.finalizeDisconnect(participantID: participantID)
         }
 
-        logger.info("Peer disconnected: \(participantID)")
+        logger.info("Peer \(participantID) disconnected, grace period started (\(Self.gracePeriodSeconds)s)")
+    }
+
+    private func finalizeDisconnect(participantID: UUID) {
+        participants.removeAll { $0.id == participantID }
+        disconnectTimers.removeValue(forKey: participantID)
+
+        // Broadcast updated state
+        broadcastStateUpdate()
+
+        // Revert to hosting phase if only the leader remains in lobby
+        if isLeader && phase == .lobby && participants.count == 1 {
+            phase = .hosting
+        }
+
+        logger.info("Grace period expired for \(participantID), removed from session")
+    }
+
+    private func broadcastStateUpdate() {
+        guard isLeader else { return }
+        let stateUpdate = SessionMessage.sessionStateUpdate(
+            SessionStateUpdate(participants: participants)
+        )
+        do {
+            try multipeerService.sendToAll(stateUpdate, reliable: true)
+        } catch {
+            logger.error("Failed to broadcast state update: \(error)")
+        }
     }
 
     // MARK: - Cleanup
@@ -575,6 +652,9 @@ final class LiveStudySessionService: StudySessionService {
 
         pendingJoinTimers.values.forEach { $0.cancel() }
         pendingJoinTimers.removeAll()
+
+        disconnectTimers.values.forEach { $0.cancel() }
+        disconnectTimers.removeAll()
 
         multipeerService.messageHandler = nil
         multipeerService.peerConnectedHandler = nil

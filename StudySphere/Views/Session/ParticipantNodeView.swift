@@ -36,6 +36,7 @@ struct ParticipantNodeView: View {
         case .distracted: .red
         case .outsideCircle: .red.opacity(0.6)
         case .disconnected: .gray
+        case .reconnecting: .gray.opacity(0.6)
         }
     }
 }
