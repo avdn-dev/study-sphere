@@ -337,18 +337,10 @@ final class LiveMultipeerService: MultipeerService {
                     parent.logger.warning("Invalid info from room peer: \(peerID)")
                     return
                 }
-                guard !parent._roomsInfo.keys.contains(peerID) else {
-                    parent.logger.warning("Duplicated room from peer: \(peerID)")
-                    return
-                }
                 parent._roomsInfo[peerID] = info
             case self.parent._participantBrowser:
                 guard let info = ParticipantDiscoveryInfo(peerID: peerID, discoveryInfo: info) else {
                     parent.logger.warning("Invalid info from participant peer: \(peerID)")
-                    return
-                }
-                guard !parent._participantsInfo.keys.contains(peerID) else {
-                    parent.logger.warning("Duplicated participant from peer: \(peerID)")
                     return
                 }
                 parent._participantsInfo[peerID] = info
