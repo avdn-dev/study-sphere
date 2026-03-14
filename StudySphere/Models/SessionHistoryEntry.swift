@@ -8,4 +8,5 @@ struct SessionHistoryEntry: Codable, Equatable, Identifiable, Sendable {
     let participantCount: Int
     let distractionCount: Int
     let focusScore: Double
+    var participantAnalytics: [ParticipantAnalytics]
 }

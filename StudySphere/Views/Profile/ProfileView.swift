@@ -32,9 +32,9 @@ struct ProfileView: View {
 
             Section("Study Stats") {
               HStack(spacing: 12) {
-                StatCardView(icon: "clock.fill", value: formattedFocusTime(viewModel.totalFocusTime), label: "Focus Time")
-                StatCardView(icon: "book.closed.fill", value: "\(viewModel.totalSessions)", label: "Sessions")
-                StatCardView(icon: "target", value: String(format: "%.0f%%", viewModel.averageFocusScore * 100), label: "Focus Score")
+                ProfileStatCardView(icon: "clock.fill", value: formattedFocusTime(viewModel.totalFocusTime), label: "Focus Time")
+                ProfileStatCardView(icon: "book.closed.fill", value: "\(viewModel.totalSessions)", label: "Sessions")
+                ProfileStatCardView(icon: "target", value: String(format: "%.0f%%", viewModel.averageFocusScore * 100), label: "Focus Score")
               }
               .listRowInsets(EdgeInsets(top: 8, leading: 0, bottom: 8, trailing: 0))
               .listRowBackground(Color.clear)

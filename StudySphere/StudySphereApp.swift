@@ -83,6 +83,9 @@ struct StudySphereApp: App {
         let profileViewModelFactory = ProfileViewModel.Factory {
             ProfileViewModel(profileService: profileService)
         }
+        let sessionAnalyticsViewModelFactory = SessionAnalyticsViewModel.Factory {
+            SessionAnalyticsViewModel(profileService: profileService)
+        }
         let appSelectionViewModelFactory: AppSelectionViewModel.Factory = .routed { router in
             AppSelectionViewModel(
                 router: router,
@@ -101,6 +104,7 @@ struct StudySphereApp: App {
         _createSessionViewModelFactory = State(initialValue: createSessionViewModelFactory)
         _activeSessionViewModelFactory = State(initialValue: activeSessionViewModelFactory)
         _profileViewModelFactory = State(initialValue: profileViewModelFactory)
+        _sessionAnalyticsViewModelFactory = State(initialValue: sessionAnalyticsViewModelFactory)
         _appSelectionViewModelFactory = State(initialValue: appSelectionViewModelFactory)
         _profileService = State(initialValue: profileService)
         _screenTimeViewModelFactory = State(initialValue: screenTimeViewModelFactory)
@@ -117,6 +121,7 @@ struct StudySphereApp: App {
                 .environment(createSessionViewModelFactory)
                 .environment(activeSessionViewModelFactory)
                 .environment(profileViewModelFactory)
+                .environment(sessionAnalyticsViewModelFactory)
                 .environment(appSelectionViewModelFactory)
                 .environment(screenTimeViewModelFactory)
                 .task { profileService.load() }
@@ -131,6 +136,7 @@ struct StudySphereApp: App {
     @State private var createSessionViewModelFactory: CreateSessionViewModel.Factory
     @State private var activeSessionViewModelFactory: ActiveSessionViewModel.Factory
     @State private var profileViewModelFactory: ProfileViewModel.Factory
+    @State private var sessionAnalyticsViewModelFactory: SessionAnalyticsViewModel.Factory
     @State private var appSelectionViewModelFactory: AppSelectionViewModel.Factory
     @State private var profileService: LiveProfileService
     @State private var screenTimeViewModelFactory: ScreenTimeViewModel.Factory

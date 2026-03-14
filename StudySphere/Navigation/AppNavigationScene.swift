@@ -14,7 +14,7 @@ enum AppScene: @MainActor NavigationScene {
 
 enum AppTab: Int, TabDestination {
     case focus = 0
-    case profile = 1
+    case analytics = 1
 }
 
 // MARK: - AppPush
