@@ -51,6 +51,11 @@ struct ActiveSessionView: View {
             }
             .padding(.bottom)
         }
+        .onChange(of: viewModel.state.phase) { _, newPhase in
+            if newPhase == .ended {
+                dismiss()
+            }
+        }
         .toolbar {
           if viewModel.state.activeSession?.isActive == false {
             ToolbarItem(placement: .topBarLeading) {

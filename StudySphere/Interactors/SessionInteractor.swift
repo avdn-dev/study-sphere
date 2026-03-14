@@ -7,6 +7,8 @@ protocol SessionInteractor: AnyObject {
     var activeSession: StudySession? { get }
     var participants: [Participant] { get }
     var isHost: Bool { get }
+  @StubbableDefault(StudySessionPhase.idle)
+    var phase: StudySessionPhase { get }
     var remainingTime: TimeInterval? { get }
     var isCalibrated: Bool { get }
     var isScreenTimeAuthorized: Bool { get }

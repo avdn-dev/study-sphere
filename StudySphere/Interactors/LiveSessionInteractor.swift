@@ -36,6 +36,10 @@ final class LiveSessionInteractor: SessionInteractor {
         studySessionService.isLeader
     }
 
+    var phase: StudySessionPhase {
+        studySessionService.phase
+    }
+
     var remainingTime: TimeInterval?
     var isCalibrated = false
     var isScreenTimeAuthorized: Bool { permissionsService.isScreenTimeAuthorized }
