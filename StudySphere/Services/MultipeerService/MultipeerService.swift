@@ -145,6 +145,7 @@ enum MultipeerServiceError: Swift.Error {
     case participantInfoInvalid
     case alreadyJoiningRoom
     case failedToJoinRoom
+    case invalidState
 }
 
 enum MultipeerServiceState: CustomStringConvertible {

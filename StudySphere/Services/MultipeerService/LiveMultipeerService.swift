@@ -73,6 +73,8 @@ final class LiveMultipeerService: MultipeerService {
         _participantAdvertiser = advertiser
         advertiser.startAdvertisingPeer()
         discoveredRooms = .success([:])
+        logger.trace("\(#function): Started looking for rooms using name \(name)")
+        state = .lookingForRooms
     }
     
     func stopLookingForRooms() {
@@ -80,6 +82,7 @@ final class LiveMultipeerService: MultipeerService {
     }
     
     func _stopLookingForRooms(with error: (any Error)?) {
+        logger.trace("\(#function): Stopped looking for rooms with error \(error.debugDescription)")
         _roomBrowser.stopBrowsingForPeers()
         _participantAdvertiser?.stopAdvertisingPeer()
         if let error = error {
@@ -110,6 +113,7 @@ final class LiveMultipeerService: MultipeerService {
             _session = session
             let joinRequestData = try Self.encoder.encode(joinRequest)
             let result = try await withCheckedThrowingContinuation { continuation in
+                logger.trace("Sending join request to room peer: \(info.peerID)")
                 _roomBrowser.invitePeer(
                     info.peerID,
                     to: session,
@@ -118,9 +122,11 @@ final class LiveMultipeerService: MultipeerService {
                 _roomJoinContinuation = continuation
             }
             guard result else {
+                logger.trace("Join request to room peer \(info.peerID) rejected")
                 _session = nil
                 return false
             }
+            logger.trace("Join request to room peer \(info.peerID) accepted")
             return true
         case .failure(let failure):
             throw failure
@@ -220,15 +226,18 @@ final class LiveMultipeerService: MultipeerService {
         case .connectedAsHost:
             logger.error("Close the room first before changing it")
             #warning("TODO: Handle host")
+            throw MultipeerServiceError.invalidState
         case .lookingForRooms:
             logger.warning("Don't change the room while looking for a room.")
             stopLookingForRooms()
         case .connectedAsParticipant:
             logger.error("Disconnect from the room first before creating a new one")
             #warning("TODO: Handle participant")
+            throw MultipeerServiceError.invalidState
         case .joiningRoom:
             logger.error("Cannot create new room while joining one")
             #warning("TODO: Handle joining room")
+            throw MultipeerServiceError.invalidState
         case .idle:
             break
         }
@@ -242,6 +251,7 @@ final class LiveMultipeerService: MultipeerService {
             ).discoveryInfo,
             serviceType: Self.roomHostingServiceType
         )
+        logger.trace("\(#function): Session updated successfully")
     }
     
     // MARK: - Sending Messages
