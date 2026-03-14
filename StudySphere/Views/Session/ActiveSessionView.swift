@@ -5,24 +5,6 @@ import VISOR
 struct ActiveSessionView: View {
   @Environment(\.dismiss) private var dismiss
 
-    @State private var simulator = StudySphereSimulator()
-
-    private var isSimulatorMode: Bool {
-        viewModel.state.participants.isEmpty
-    }
-
-    private var activeParticipants: [Participant] {
-        isSimulatorMode ? simulator.participants : viewModel.state.participants
-    }
-
-    private var activePositions: [String: PeerPosition] {
-        isSimulatorMode ? simulator.positions : viewModel.state.estimatedPositions
-    }
-
-    private var activeStatuses: [UUID: ParticipantStatus] {
-        isSimulatorMode ? simulator.statuses : viewModel.state.participantStatuses
-    }
-
     private var activeRadiusMeters: Double {
         viewModel.state.activeSession?.settings.radiusMeters ?? 5.0
     }
@@ -34,9 +16,9 @@ struct ActiveSessionView: View {
 
             // Full-screen Metal view — blob never clips
             MetalMetaballView(
-                participants: activeParticipants,
-                positions: activePositions,
-                statuses: activeStatuses,
+                participants: viewModel.state.participants,
+                positions: viewModel.state.estimatedPositions,
+                statuses: viewModel.state.participantStatuses,
                 radiusMeters: activeRadiusMeters
             )
             .ignoresSafeArea()
@@ -47,8 +29,8 @@ struct ActiveSessionView: View {
                 ZStack {
                     GeometryReader { geo in
                         let side = geo.size.width
-                        ForEach(activeParticipants) { participant in
-                            let status = activeStatuses[participant.id] ?? participant.status
+                        ForEach(viewModel.state.participants) { participant in
+                            let status = viewModel.state.participantStatuses[participant.id] ?? participant.status
                             let pos = avatarPosition(for: participant, viewSize: side)
                             avatarView(participant: participant, status: status)
                                 .position(pos)
@@ -76,10 +58,10 @@ struct ActiveSessionView: View {
                 // Participant list
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 12) {
-                        ForEach(activeParticipants) { participant in
+                        ForEach(viewModel.state.participants) { participant in
                             ParticipantNodeView(
                                 participant: participant,
-                                status: activeStatuses[participant.id] ?? participant.status
+                                status: viewModel.state.participantStatuses[participant.id] ?? participant.status
                             )
                         }
                     }
@@ -116,12 +98,6 @@ struct ActiveSessionView: View {
             }
             .padding(.bottom)
         }
-        .onAppear {
-            if isSimulatorMode { simulator.start() }
-        }
-        .onDisappear {
-            simulator.stop()
-        }
         .toolbar {
           if viewModel.state.activeSession?.isActive == false {
             ToolbarItem(placement: .topBarLeading) {
@@ -143,7 +119,7 @@ struct ActiveSessionView: View {
 
         let worldX: Double
         let worldY: Double
-        if let pos = activePositions[key] {
+        if let pos = viewModel.state.estimatedPositions[key] {
             worldX = pos.x
             worldY = pos.y
         } else if let pos = participant.position {
