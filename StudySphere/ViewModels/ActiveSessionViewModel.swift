@@ -37,10 +37,8 @@ final class ActiveSessionViewModel {
             await sessionInteractor.startSession()
         case .endSession:
             await sessionInteractor.endSession()
-            router.dismissFullScreen()
         case .leaveSession:
             await sessionInteractor.leaveSession()
-            router.dismissFullScreen()
         }
     }
 
