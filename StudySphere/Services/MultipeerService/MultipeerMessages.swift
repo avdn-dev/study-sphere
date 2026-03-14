@@ -5,3 +5,6 @@
 //  Created by Matthew Yuen on 14/3/2026.
 //
 
+enum SessionMessage {
+    
+}
