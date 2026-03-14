@@ -5,6 +5,7 @@ import VISOR
 struct DiscoverView: View {
 
     var content: some View {
+        TestView()
 //        Group {
 //            if viewModel.state.discoveredSessions.isEmpty {
 //                ContentUnavailableView(
@@ -39,6 +40,6 @@ struct DiscoverView: View {
 //        .navigationTitle("Discover")
 //        .task { await viewModel.handle(.startBrowsing) }
 //        .refreshable { await viewModel.handle(.refresh) }
-        EmptyView()
+//        EmptyView()
     }
 }

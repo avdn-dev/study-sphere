@@ -345,7 +345,7 @@ final class LiveMultipeerService: MultipeerService {
                     invitationHandler(false, nil)
                     return
                 }
-                Task.immediate {
+                Task {
                     do {
                         guard try await joinRequestHandler(peerID, joinRequest) else {
                             parent.logger.trace("Join request for \(peerID) rejected")
