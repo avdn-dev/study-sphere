@@ -62,6 +62,11 @@
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
+		2D1D21032F6519FC007D1EB9 /* Audio */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = Audio;
+			sourceTree = "<group>";
+		};
 		425D705C2F650202003B0B43 /* ShieldConfiguration */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
@@ -113,6 +118,7 @@
 		96CFA0EA2F63EF8F009AFF34 = {
 			isa = PBXGroup;
 			children = (
+				2D1D21032F6519FC007D1EB9 /* Audio */,
 				96CFA0F52F63EF8F009AFF34 /* StudySphere */,
 				425D705C2F650202003B0B43 /* ShieldConfiguration */,
 				425D70572F650202003B0B43 /* Frameworks */,
@@ -169,6 +175,7 @@
 				425D70622F650202003B0B43 /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
+				2D1D21032F6519FC007D1EB9 /* Audio */,
 				96CFA0F52F63EF8F009AFF34 /* StudySphere */,
 			);
 			name = StudySphere;
