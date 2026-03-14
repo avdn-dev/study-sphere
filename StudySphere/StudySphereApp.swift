@@ -28,6 +28,7 @@ struct StudySphereApp: App {
         let motionService = LiveMotionService()
         let screenTimeService = LiveScreenTimeService()
         let permissionService = LivePermissionService()
+        let audioService = LiveAudioService()
 
         // 3. Create services (continued) & interactors
         let studySessionService = LiveStudySessionService(

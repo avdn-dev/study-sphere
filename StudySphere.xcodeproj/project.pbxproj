@@ -11,6 +11,9 @@
 		425D705B2F650202003B0B43 /* ManagedSettingsUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 425D705A2F650202003B0B43 /* ManagedSettingsUI.framework */; };
 		425D70632F650202003B0B43 /* ShieldConfiguration.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 425D70562F650202003B0B43 /* ShieldConfiguration.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		96CFA1092F63F054009AFF34 /* VISOR in Frameworks */ = {isa = PBXBuildFile; productRef = 96CFA1082F63F054009AFF34 /* VISOR */; };
+		A1B2C3D40001000000000004 /* AudioService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D40001000000000001 /* AudioService.swift */; };
+		A1B2C3D40001000000000005 /* LiveAudioService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D40001000000000002 /* LiveAudioService.swift */; };
+		A1B2C3D40001000000000006 /* silent-loop.wav in Resources */ = {isa = PBXBuildFile; fileRef = A1B2C3D40001000000000003 /* silent-loop.wav */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -42,6 +45,9 @@
 		425D70582F650202003B0B43 /* ManagedSettings.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = ManagedSettings.framework; path = System/Library/Frameworks/ManagedSettings.framework; sourceTree = SDKROOT; };
 		425D705A2F650202003B0B43 /* ManagedSettingsUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = ManagedSettingsUI.framework; path = System/Library/Frameworks/ManagedSettingsUI.framework; sourceTree = SDKROOT; };
 		96CFA0F32F63EF8F009AFF34 /* StudySphere.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = StudySphere.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		A1B2C3D40001000000000001 /* AudioService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioService.swift; sourceTree = "<group>"; };
+		A1B2C3D40001000000000002 /* LiveAudioService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveAudioService.swift; sourceTree = "<group>"; };
+		A1B2C3D40001000000000003 /* silent-loop.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = "silent-loop.wav"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -114,6 +120,8 @@
 			isa = PBXGroup;
 			children = (
 				96CFA0F52F63EF8F009AFF34 /* StudySphere */,
+				A1B2C3D40001000000000007 /* AudioService */,
+				A1B2C3D40001000000000008 /* Audio */,
 				425D705C2F650202003B0B43 /* ShieldConfiguration */,
 				425D70572F650202003B0B43 /* Frameworks */,
 				96CFA0F42F63EF8F009AFF34 /* Products */,
@@ -127,6 +135,25 @@
 				425D70562F650202003B0B43 /* ShieldConfiguration.appex */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		A1B2C3D40001000000000007 /* AudioService */ = {
+			isa = PBXGroup;
+			children = (
+				A1B2C3D40001000000000001 /* AudioService.swift */,
+				A1B2C3D40001000000000002 /* LiveAudioService.swift */,
+			);
+			name = AudioService;
+			path = StudySphere/Services/AudioService;
+			sourceTree = "<group>";
+		};
+		A1B2C3D40001000000000008 /* Audio */ = {
+			isa = PBXGroup;
+			children = (
+				A1B2C3D40001000000000003 /* silent-loop.wav */,
+			);
+			name = Audio;
+			path = StudySphere/Audio;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -232,6 +259,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				A1B2C3D40001000000000006 /* silent-loop.wav in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -249,6 +277,8 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				A1B2C3D40001000000000004 /* AudioService.swift in Sources */,
+				A1B2C3D40001000000000005 /* LiveAudioService.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
