@@ -26,6 +26,14 @@ struct MainTabView: View {
             }
             .tag(AppTab.create)
 
+            NavigationContainer(parentRouter: router, tab: .analytics) {
+                SessionAnalyticsView()
+            }
+            .tabItem {
+                Label("Analytics", systemImage: "chart.bar.fill")
+            }
+            .tag(AppTab.analytics)
+
             NavigationContainer(parentRouter: router, tab: .profile) {
                 ProfileView()
             }
