@@ -183,16 +183,21 @@ final class LiveStudySessionService: StudySessionService {
             peerIDData: profile.peerIDData
         )
 
+        // Start listening BEFORE connecting so the AsyncStream continuations
+        // are ready when the host sends the JoinResponse after connection.
+        startMessageReceiveLoop()
+        startDisconnectListenLoop()
+
         let accepted = try await multipeerService.joinRoom(with: room, joinRequest: joinRequest)
 
         guard accepted else {
+            messageReceiveTask?.cancel()
+            messageReceiveTask = nil
+            disconnectListenTask?.cancel()
+            disconnectListenTask = nil
             phase = .idle
             return false
         }
-
-        // Start listening for messages from the leader
-        startMessageReceiveLoop()
-        startDisconnectListenLoop()
 
         // Phase will transition to .joined when we receive the JoinResponse
         logger.info("Join request accepted, waiting for leader response")
