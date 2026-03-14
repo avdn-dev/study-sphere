@@ -1,6 +1,7 @@
 import Foundation
 import MultipeerConnectivity
 import SwiftData
+import UIKit
 import VISOR
 
 @Observable
@@ -18,6 +19,10 @@ final class LiveProfileService: ProfileService {
 
     private let modelContext: ModelContext
     var profile: UserProfile?
+    var profileImage: UIImage? {
+        guard let data = profile?.avatarImageData else { return nil }
+        return UIImage(data: data)
+    }
     var displayName: String { profile?.name ?? "Student" }
     var peerID: MCPeerID? { profile?.peerID }
     var sessionHistory: [SessionHistoryEntry] = []
@@ -33,7 +38,6 @@ final class LiveProfileService: ProfileService {
             profile = decodedProfile
         } else {
             let defaultName = "Student"
-            let defaultAvatar = "person.circle.fill"
 
             let newPeerID = MCPeerID(displayName: defaultName)
             let peerIDData = (try? NSKeyedArchiver.archivedData(withRootObject: newPeerID, requiringSecureCoding: true)) ?? Data()
@@ -41,7 +45,7 @@ final class LiveProfileService: ProfileService {
             let defaultProfile = UserProfile(
               id: UUID(),
               name: defaultName,
-              avatarSystemName: defaultAvatar,
+              avatarImageData: nil,
               peerIDData: peerIDData
             )
 
@@ -67,15 +71,15 @@ final class LiveProfileService: ProfileService {
         sessionHistory = records.map { $0.toEntry() }
     }
 
-    func saveProfile(name: String, avatarSystemName: String) {
+    func saveProfile(name: String, avatarImageData: Data?) {
         let defaults = UserDefaults.standard
         let encoder = JSONEncoder()
 
-      if let existing = profile {
+        if let existing = profile {
             let updated = UserProfile(
               id: existing.id,
               name: name,
-              avatarSystemName: avatarSystemName,
+              avatarImageData: avatarImageData,
               peerIDData: existing.peerIDData
             )
             profile = updated
@@ -90,7 +94,7 @@ final class LiveProfileService: ProfileService {
             let newProfile = UserProfile(
               id: UUID(),
               name: name,
-              avatarSystemName: avatarSystemName,
+              avatarImageData: avatarImageData,
               peerIDData: peerIDData
             )
             profile = newProfile
