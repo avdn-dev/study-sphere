@@ -7,7 +7,6 @@ protocol ScreenTimeService: AnyObject {
     var isBlockedAppInUse: Bool { get }
     var blockedApps: FamilyActivitySelection { get set }
 
-    func requestAuthorization() async throws
     func applyShields()
     func removeShields()
     func startMonitoring()

@@ -6,7 +6,6 @@
 //
 
 @preconcurrency import FamilyControls
-import CoreMotion
 import UIKit
 
 final class LivePermissionService: PermissionsService {

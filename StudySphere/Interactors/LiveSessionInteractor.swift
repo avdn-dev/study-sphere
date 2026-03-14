@@ -54,7 +54,7 @@ final class LiveSessionInteractor: SessionInteractor {
     // MARK: - Screen Time
 
     func requestScreenTimeAuthorization() async throws {
-        try await screenTimeService.requestAuthorization()
+
     }
 
     // MARK: - Private

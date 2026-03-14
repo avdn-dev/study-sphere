@@ -16,9 +16,6 @@ struct ScreenTimeView: View {
     @ViewBuilder
     var content: some View {
         @Bindable var viewModel = viewModel
-        Button("Request Permission") {
-            
-        }
         Button("Block apps") {
             Task {
                 await viewModel.handle(.openBlockedAppsPicker)
@@ -27,7 +24,12 @@ struct ScreenTimeView: View {
         .familyActivityPicker(isPresented: $viewModel.state.isBlockedAppPickerPresented, selection: .init(get: {
             viewModel.state.blockedApps
         }, set: {
+            viewModel.state.blockedApps = $0
             viewModel.screenTimeService.blockedApps = $0
+            viewModel.screenTimeService.applyShields()
         }))
+        Button("Stop blocking") {
+            viewModel.screenTimeService.removeShields()
+        }
     }
 }
