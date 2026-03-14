@@ -1,4 +1,5 @@
 import Foundation
+import UIKit
 import VISOR
 
 @Observable
@@ -8,12 +9,13 @@ final class ProfileViewModel {
     enum Action {
         case loadProfile
         case updateName(String)
-        case updateAvatar(String)
+        case updateProfileImage(UIImage?)
         case clearHistory
     }
 
     struct State: Equatable {
         @Bound(\ProfileViewModel.profileService) var profile: UserProfile?
+        @Bound(\ProfileViewModel.profileService) var profileImage: UIImage?
         @Bound(\ProfileViewModel.profileService) var sessionHistory: [SessionHistoryEntry] = []
     }
 
@@ -39,11 +41,12 @@ final class ProfileViewModel {
         case .updateName(let name):
             profileService.saveProfile(
                 name: name,
-                avatarSystemName: state.profile?.avatarSystemName ?? "person.circle.fill")
-        case .updateAvatar(let avatar):
+                avatarImageData: state.profile?.avatarImageData)
+        case .updateProfileImage(let image):
+            let imageData = image.flatMap { $0.jpegData(compressionQuality: 0.8) }
             profileService.saveProfile(
                 name: state.profile?.name ?? "Student",
-                avatarSystemName: avatar)
+                avatarImageData: imageData)
         case .clearHistory:
             profileService.clearHistory()
         }
