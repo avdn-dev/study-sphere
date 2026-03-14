@@ -37,17 +37,15 @@ final class ActiveSessionViewModel {
             await sessionInteractor.startSession()
         case .endSession:
             await sessionInteractor.endSession()
-            router.dismissFullScreen()
         case .leaveSession:
             await sessionInteractor.leaveSession()
-            router.dismissFullScreen()
         }
     }
 
     // MARK: - Private
 
     private let router: Router<AppScene>
-    private let sessionInteractor: SessionInteractor
-    private let distractionInteractor: DistractionInteractor
-    private let nearbyInteractionService: NearbyInteractionService
+    private let sessionInteractor: any SessionInteractor
+    private let distractionInteractor: any DistractionInteractor
+    private let nearbyInteractionService: any NearbyInteractionService
 }

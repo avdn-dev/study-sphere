@@ -25,6 +25,6 @@ final class AppSelectionViewModel {
     // MARK: - Private
 
     private let router: Router<AppScene>
-    private let screenTimeService: ScreenTimeService
-    private let permissionsService: PermissionsService
+    private let screenTimeService: any ScreenTimeService
+    private let permissionsService: any PermissionsService
 }

@@ -14,7 +14,7 @@ protocol SessionInteractor: AnyObject {
     func createSession(settings: SessionSettings) async
     func startSession() async
     func endSession() async
-    func joinSession(host: DiscoveredSession) async
+//    func joinSession(host: DiscoveredSession) async
     func leaveSession() async
     func requestScreenTimeAuthorization() async throws
 }

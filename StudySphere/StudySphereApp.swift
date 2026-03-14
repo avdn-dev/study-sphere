@@ -1,4 +1,5 @@
 import OSLog
+import SwiftData
 import SwiftUI
 import VISOR
 
@@ -8,15 +9,27 @@ struct StudySphereApp: App {
     // MARK: Lifecycle
 
     init() {
-        // 1. Create services
-        let profileService = LiveProfileService()
-        let multipeerService = LiveMultipeerService(profileService: profileService)
+        // 1. SwiftData container and context for profile/session history
+        let schema = Schema([SessionHistoryEntryRecord.self])
+        let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
+        let modelContainer: ModelContainer
+        do {
+            modelContainer = try ModelContainer(for: schema, configurations: [modelConfiguration])
+        } catch {
+            fatalError("Could not create ModelContainer: \(error)")
+        }
+        let modelContext = ModelContext(modelContainer)
+
+        // 2. Create services
+        let profileService = LiveProfileService(modelContext: modelContext)
+        profileService.load()
+        let multipeerService = LiveMultipeerService(peerID: profileService.peerID!)
         let nearbyInteractionService = LiveNearbyInteractionService()
         let motionService = LiveMotionService()
         let screenTimeService = LiveScreenTimeService()
         let permissionService = LivePermissionService()
 
-        // 2. Create interactors
+        // 3. Create interactors
         let sessionInteractor = LiveSessionInteractor(
             multipeerService: multipeerService,
             nearbyInteractionService: nearbyInteractionService,
@@ -30,14 +43,14 @@ struct StudySphereApp: App {
             nearbyInteractionService: nearbyInteractionService,
             profileService: profileService)
 
-        // 3. Create root router
+        // 4. Create root router
         let router = Router<AppScene>(
             level: 0,
             identifierTab: nil,
             logger: Logger(subsystem: "studio.cgc.StudySphere", category: "Router"))
         router.selectedTab = .discover
 
-        // 4. Create ViewModel factories
+        // 5. Create ViewModel factories
         let mainTabViewModelFactory = MainTabViewModel.Factory {
             MainTabViewModel(router: router)
         }
@@ -73,7 +86,7 @@ struct StudySphereApp: App {
             ScreenTimeViewModel(screenTimeService: screenTimeService, permissionsService: permissionService)
         }
 
-        // 5. Assign to @State properties
+        // 6. Assign to @State properties
         _router = State(initialValue: router)
         _mainTabViewModelFactory = State(initialValue: mainTabViewModelFactory)
         _discoverViewModelFactory = State(initialValue: discoverViewModelFactory)
