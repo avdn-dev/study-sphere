@@ -65,6 +65,9 @@ final class LiveStudySessionService: StudySessionService {
     /// Responses queued until the MC connection is fully established
     private var pendingJoinResponses: [MCPeerID: SessionMessage] = [:]
 
+    /// Timers that clean up ghost participants if MC connection never completes
+    private var pendingJoinTimers: [MCPeerID: Task<Void, Never>] = [:]
+
     /// Key used for the peer's NI session with the leader (peer side only)
     private var leaderNIKey: String?
 
@@ -303,6 +306,13 @@ final class LiveStudySessionService: StudySessionService {
         )
         pendingJoinResponses[peerID] = response
 
+        // Start timeout to clean up if MC connection never completes
+        pendingJoinTimers[peerID] = Task { [weak self] in
+            try? await Task.sleep(for: .seconds(LiveMultipeerService.timeout + 5))
+            guard !Task.isCancelled else { return }
+            self?.cleanupFailedJoin(peerID: peerID)
+        }
+
         // Transition to lobby if first peer joined
         if phase == .hosting {
             phase = .lobby
@@ -310,6 +320,26 @@ final class LiveStudySessionService: StudySessionService {
 
         logger.info("\(joinRequest.name) joined session (\(self.participants.count)/\(session.maxSize))")
         return true
+    }
+
+    private func cleanupFailedJoin(peerID: MCPeerID) {
+        guard pendingJoinResponses.removeValue(forKey: peerID) != nil else { return }
+        guard let participantID = participantIDMap.removeValue(forKey: peerID) else { return }
+
+        participants.removeAll { $0.id == participantID }
+        nearbyInteractionService.stopSession(for: participantID.uuidString)
+        peerIDMap.removeValue(forKey: participantID)
+        pendingJoinTimers.removeValue(forKey: peerID)
+
+        // Broadcast updated state
+        if isLeader {
+            let stateUpdate = SessionMessage.sessionStateUpdate(
+                SessionStateUpdate(participants: participants)
+            )
+            try? multipeerService.sendToAll(stateUpdate, reliable: true)
+        }
+
+        logger.info("Cleaned up failed join for \(peerID)")
     }
 
     // MARK: - Message Handling
@@ -467,6 +497,10 @@ final class LiveStudySessionService: StudySessionService {
     // MARK: - Peer Connected Handling (Leader)
 
     private func handlePeerConnected(_ peerID: MCPeerID) {
+        // Cancel the pending join timeout — connection succeeded
+        pendingJoinTimers[peerID]?.cancel()
+        pendingJoinTimers.removeValue(forKey: peerID)
+
         // Send the queued join response now that the connection is established
         if let response = pendingJoinResponses.removeValue(forKey: peerID) {
             do {
@@ -533,6 +567,9 @@ final class LiveStudySessionService: StudySessionService {
     private func cleanup() {
         positionBroadcastTask?.cancel()
         positionBroadcastTask = nil
+
+        pendingJoinTimers.values.forEach { $0.cancel() }
+        pendingJoinTimers.removeAll()
 
         multipeerService.messageHandler = nil
         multipeerService.peerConnectedHandler = nil
