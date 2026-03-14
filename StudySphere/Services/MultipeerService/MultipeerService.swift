@@ -58,6 +58,11 @@ struct ParticipantDiscoveryInfo: Equatable {
         self.participantName = participantName
     }
     
+    init(peerID: MCPeerID, participantName: String) {
+        self.peerID = peerID
+        self.participantName = participantName
+    }
+    
     var discoveryInfo: [String : String] {
         [
             Keys.participantName: participantName
@@ -81,18 +86,16 @@ protocol MultipeerService: AnyObject {
     // Room Browsing
     var discoveredRooms: Result<[MCPeerID : RoomDiscoveryInfo], any Error>? { get }
     var isLookingForRooms: Bool { get }
-    func startLookingForRooms() throws
+    func startLookingForRooms(using name: String) throws
     func stopLookingForRooms()
     
     // Joining A Room
-    func joinRoom(with info: RoomDiscoveryInfo) async throws -> Bool
+    func joinRoom(with info: RoomDiscoveryInfo, joinRequest: JoinRequest) async throws -> Bool
     
     var joinRequestHandler: ((
         _ peerID: MCPeerID,
         _ joinRequest: JoinRequest
     ) async throws -> Bool)? { get set }
-    
-    func inviteParticipantToRoom() async throws -> Bool
     
     // Room Hosting
     var discoveredParticipants: Result<[MCPeerID : ParticipantDiscoveryInfo], any Error>? { get }
@@ -104,9 +107,8 @@ protocol MultipeerService: AnyObject {
     func setCurrentSession(_ session: StudySession) throws
     
     // Sending Messages
-    #warning("TODO: Decide on what messages to send")
-    var messages: AsyncStream<Void> { get }
-    func send(message: Void) throws
+    var messages: AsyncStream<SessionMessage> { get }
+    func send(message: SessionMessage) throws
     
 }
 
@@ -128,7 +130,7 @@ extension MultipeerService {
         state == .lookingForParticipants
     }
     
-    var messages: AsyncStream<Void> {
+    var messages: AsyncStream<SessionMessage> {
         preconditionFailure("Not implemented")
     }
     
@@ -138,16 +140,22 @@ enum MultipeerServiceError: Swift.Error {
     case missingRoom
     case alreadyInRoom
     case notLookingForRooms
+    case notLookginForParticipants
     case roomInfoInvalid
+    case participantInfoInvalid
     case alreadyJoiningRoom
     case failedToJoinRoom
 }
 
-enum MultipeerServiceState {
+enum MultipeerServiceState: CustomStringConvertible {
     case idle
     case lookingForRooms
     case lookingForParticipants
     case joiningRoom
     case connectedAsHost
     case connectedAsParticipant
+    
+    var description: String {
+        String(reflecting: self)
+    }
 }

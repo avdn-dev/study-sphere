@@ -43,6 +43,7 @@ final class LiveMultipeerService: MultipeerService {
     // MARK: - Room Discovery
 
     private let _roomBrowser: MCNearbyServiceBrowser
+    private var _participantAdvertiser: MCNearbyServiceAdvertiser?
     private let _delegate: _MCDelegate
     
     private(set) var discoveredRooms: Result<[MCPeerID : RoomDiscoveryInfo], any Error>?
@@ -60,8 +61,17 @@ final class LiveMultipeerService: MultipeerService {
         }
     }
     
-    func startLookingForRooms() {
+    func startLookingForRooms(using name: String) throws {
         _roomBrowser.startBrowsingForPeers()
+        let advertiser = MCNearbyServiceAdvertiser(
+            peer: peerID,
+            discoveryInfo: ParticipantDiscoveryInfo(
+                peerID: peerID,
+                participantName: name
+            ).discoveryInfo,
+            serviceType: Self.roomPartyServiceType)
+        _participantAdvertiser = advertiser
+        advertiser.startAdvertisingPeer()
         discoveredRooms = .success([:])
     }
     
@@ -71,6 +81,7 @@ final class LiveMultipeerService: MultipeerService {
     
     func _stopLookingForRooms(with error: (any Error)?) {
         _roomBrowser.stopBrowsingForPeers()
+        _participantAdvertiser?.stopAdvertisingPeer()
         if let error = error {
             discoveredRooms = .failure(error)
         } else {
@@ -85,7 +96,7 @@ final class LiveMultipeerService: MultipeerService {
     private var _roomJoinContinuation: CheckedContinuation<Bool, any Error>?
     private var _roomJoinPeerID: MCPeerID?
     
-    func joinRoom(with info: RoomDiscoveryInfo) async throws -> Bool {
+    func joinRoom(with info: RoomDiscoveryInfo, joinRequest: JoinRequest) async throws -> Bool {
         switch self.discoveredRooms {
         case .success(let rooms):
             guard rooms.keys.contains(info.peerID) else {
@@ -97,9 +108,13 @@ final class LiveMultipeerService: MultipeerService {
             }
             let session = MCSession(peer: peerID)
             _session = session
-            #warning("TODO: pass info to peers")
+            let joinRequestData = try Self.encoder.encode(joinRequest)
             let result = try await withCheckedThrowingContinuation { continuation in
-                _roomBrowser.invitePeer(info.peerID, to: session, withContext: nil, timeout: Self.timeout)
+                _roomBrowser.invitePeer(
+                    info.peerID,
+                    to: session,
+                    withContext: joinRequestData,
+                    timeout: Self.timeout)
                 _roomJoinContinuation = continuation
             }
             guard result else {
@@ -117,9 +132,7 @@ final class LiveMultipeerService: MultipeerService {
     @ObservationIgnored
     var joinRequestHandler: ((MCPeerID, JoinRequest) async throws -> Bool)?
     
-    func inviteParticipantToRoom() async throws -> Bool {
-        return false
-    }
+    private var _participantPendingJoins: [MCPeerID : CheckedContinuation<Void, any Error>] = [:]
     
     // MARK: - Room Hosting
     
@@ -220,6 +233,7 @@ final class LiveMultipeerService: MultipeerService {
             break
         }
         self._currentStudySession = session
+        self._session = MCSession(peer: peerID)
         self._roomAdvertiser = MCNearbyServiceAdvertiser(
             peer: peerID,
             discoveryInfo: RoomDiscoveryInfo(
@@ -232,7 +246,7 @@ final class LiveMultipeerService: MultipeerService {
     
     // MARK: - Sending Messages
     
-    func send(message: Void) throws {
+    func send(message: SessionMessage) throws {
         
     }
     
@@ -326,37 +340,43 @@ final class LiveMultipeerService: MultipeerService {
                         invitationHandler: @escaping (Bool, MCSession?) -> Void) {
             switch advertiser {
             case self.parent._roomAdvertiser:
-                parent.logger.trace("Reaceived invitation from: \(peerID)")
-                guard let joinRequestHandler = parent.joinRequestHandler else {
-                    parent.logger.error("Received invitation but no handler set")
-                    invitationHandler(false, nil)
-                    return
-                }
-                guard let context = context else {
-                    parent.logger.warning("\(peerID) Missing context, ignoring")
-                    invitationHandler(false, nil)
-                    return
-                }
-                let joinRequest: JoinRequest
-                do {
-                    joinRequest = try decoder.decode(JoinRequest.self, from: context)
-                } catch {
-                    parent.logger.warning("\(peerID) join request is malformed with error: \(error), ignoring")
-                    invitationHandler(false, nil)
-                    return
-                }
-                Task.immediate {
-                    do {
-                        guard try await joinRequestHandler(peerID, joinRequest) else {
-                            parent.logger.trace("Join request for \(peerID) rejected")
-                            return
-                        }
-                        parent.logger.trace("Join request for \(peerID) accepted")
-                        invitationHandler(true, self.parent._session)
-                    } catch {
-                        parent.logger.warning("Join request handler for \(peerID) threw an error: \(error)")
+                switch self.parent.state {
+                // This will be the state when a participant is trying to join a room
+                case .connectedAsHost:
+                    parent.logger.trace("Reaceived participant invitation from: \(peerID)")
+                    guard let joinRequestHandler = parent.joinRequestHandler else {
+                        parent.logger.error("Received invitation but no handler set")
                         invitationHandler(false, nil)
+                        return
                     }
+                    guard let context = context else {
+                        parent.logger.warning("\(peerID) Missing context, ignoring")
+                        invitationHandler(false, nil)
+                        return
+                    }
+                    let joinRequest: JoinRequest
+                    do {
+                        joinRequest = try decoder.decode(JoinRequest.self, from: context)
+                    } catch {
+                        parent.logger.warning("\(peerID) join request is malformed with error: \(error), ignoring")
+                        invitationHandler(false, nil)
+                        return
+                    }
+                    Task.immediate {
+                        do {
+                            guard try await joinRequestHandler(peerID, joinRequest) else {
+                                parent.logger.trace("Join request for \(peerID) rejected")
+                                return
+                            }
+                            parent.logger.trace("Join request for \(peerID) accepted")
+                            invitationHandler(true, self.parent._session)
+                        } catch {
+                            parent.logger.warning("Join request handler for \(peerID) threw an error: \(error)")
+                            invitationHandler(false, nil)
+                        }
+                    }
+                default:
+                    parent.logger.error("Invalid state for receiving an invitation: \(self.parent.state)")
                 }
             default:
                 preconditionFailure()
