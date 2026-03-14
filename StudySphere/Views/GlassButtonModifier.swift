@@ -7,6 +7,17 @@ extension View {
     }
 }
 
+/// Removes the shared Liquid Glass toolbar background on iOS 26+. No-op on earlier versions.
+struct HideSharedBackgroundModifier: ViewModifier {
+    func body(content: Content) -> some View {
+        if #available(iOS 26.0, *) {
+            content.sharedBackgroundVisibility(.hidden)
+        } else {
+            content
+        }
+    }
+}
+
 private struct GlassButtonModifier: ViewModifier {
     let prominent: Bool
 

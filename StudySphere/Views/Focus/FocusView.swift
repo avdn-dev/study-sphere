@@ -84,6 +84,7 @@ struct FocusView: View {
                     }
                 }
                 .accessibilityLabel("Profile")
+                .modifier(HideSharedBackgroundModifier())
             }
         }
     }
