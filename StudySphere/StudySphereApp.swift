@@ -29,14 +29,20 @@ struct StudySphereApp: App {
         let screenTimeService = LiveScreenTimeService()
         let permissionService = LivePermissionService()
 
-        // 3. Create interactors
+        // 3. Create services (continued) & interactors
+        let studySessionService = LiveStudySessionService(
+            multipeerService: multipeerService,
+            nearbyInteractionService: nearbyInteractionService,
+            profileService: profileService
+        )
         let sessionInteractor = LiveSessionInteractor(
             multipeerService: multipeerService,
             nearbyInteractionService: nearbyInteractionService,
             motionService: motionService,
             screenTimeService: screenTimeService,
             profileService: profileService,
-            permissionsService: permissionService)
+            permissionsService: permissionService,
+            studySessionService: studySessionService)
         let distractionInteractor = LiveDistractionInteractor(
             motionService: motionService,
             screenTimeService: screenTimeService,
@@ -48,7 +54,7 @@ struct StudySphereApp: App {
             level: 0,
             identifierTab: nil,
             logger: Logger(subsystem: "studio.cgc.StudySphere", category: "Router"))
-      router.selectedTab = .create
+        router.selectedTab = .focus
 
         // 5. Create ViewModel factories
         let mainTabViewModelFactory = MainTabViewModel.Factory {
@@ -58,7 +64,9 @@ struct StudySphereApp: App {
             DiscoverViewModel(
                 router: router,
                 multipeerService: multipeerService,
-                sessionInteractor: sessionInteractor)
+                studySessionService: studySessionService,
+                profileService: profileService,
+                nearbyInteractionService: nearbyInteractionService)
         }
         let createSessionViewModelFactory: CreateSessionViewModel.Factory = .routed { router in
             CreateSessionViewModel(

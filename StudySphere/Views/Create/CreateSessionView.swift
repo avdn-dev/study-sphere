@@ -59,9 +59,11 @@ struct CreateSessionView: View {
         .navigationTitle("Create Session")
         .toolbarTitleDisplayMode(.inlineLarge)
         .toolbar {
-          Button("Profile", systemImage: "person.crop.circle.fill") {
-            router.present(sheet: .profile)
-          }
+            ToolbarItem(placement: .cancellationAction) {
+                Button("Cancel") {
+                    router.dismissSheet()
+                }
+            }
         }
     }
 }

@@ -14,8 +14,8 @@ import VISOR
 @ViewModel
 @Observable
 final class ScreenTimeViewModel {
-    let screenTimeService: ScreenTimeService
-    let permissionsService: PermissionsService
+    let screenTimeService: any ScreenTimeService
+    let permissionsService: any PermissionsService
     
     struct State: Equatable {
         @Bound(\ScreenTimeViewModel.screenTimeService) var blockedApps: FamilyActivitySelection = .init()

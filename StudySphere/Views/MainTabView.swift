@@ -10,13 +10,13 @@ struct MainTabView: View {
         @Bindable var router = router
 
         return TabView(selection: $router.selectedTab) {
-            NavigationContainer(parentRouter: router, tab: .create) {
-                CreateSessionView()
+            NavigationContainer(parentRouter: router, tab: .focus) {
+                FocusView()
             }
             .tabItem {
-                Label("Create", systemImage: "plus.circle.fill")
+                Label("Focus", systemImage: "brain")
             }
-            .tag(AppTab.create)
+            .tag(AppTab.focus)
 
             NavigationContainer(parentRouter: router, tab: .profile) {
                 ProfileView()
