@@ -8,7 +8,6 @@ final class LiveProfileService: ProfileService {
 
     private enum DefaultsKeys {
       static let profile = "profile.userProfile.67"
-      static let sessionHistory: String = "profile.sessionHistory.67"
     }
 
     init(modelContext: ModelContext) {
@@ -55,20 +54,6 @@ final class LiveProfileService: ProfileService {
         }
 
         loadSessionHistoryFromSwiftData()
-
-        // One-time migration: if SwiftData is empty but UserDefaults has legacy history, migrate then remove key
-        if sessionHistory.isEmpty,
-           let historyData = defaults.data(forKey: DefaultsKeys.sessionHistory),
-           let decodedHistory = try? decoder.decode([SessionHistoryEntry].self, from: historyData),
-           !decodedHistory.isEmpty {
-            for entry in decodedHistory {
-                let record = SessionHistoryEntryRecord(from: entry)
-                modelContext.insert(record)
-            }
-            try? modelContext.save()
-            defaults.removeObject(forKey: DefaultsKeys.sessionHistory)
-            loadSessionHistoryFromSwiftData()
-        }
     }
 
     private func loadSessionHistoryFromSwiftData() {
@@ -86,7 +71,7 @@ final class LiveProfileService: ProfileService {
         let defaults = UserDefaults.standard
         let encoder = JSONEncoder()
 
-        if let existing = profile {
+      if let existing = profile {
             let updated = UserProfile(
               id: existing.id,
               name: name,
