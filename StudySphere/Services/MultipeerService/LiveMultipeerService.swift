@@ -374,24 +374,29 @@ final class LiveMultipeerService: MultipeerService {
                         invitationHandler: @escaping (Bool, MCSession?) -> Void) {
             switch advertiser {
             case self.parent._roomAdvertiser:
-                switch self.parent.state {
-                // Bug fix: accept invitations in both lookingForParticipants and connectedAsHost
-                case .lookingForParticipants, .connectedAsHost:
-                    parent.logger.trace("Received participant invitation from: \(peerID)")
-                    guard let context = context else {
-                        parent.logger.warning("\(peerID) Missing context, ignoring")
-                        invitationHandler(false, nil)
-                        return
-                    }
-                    // Only pass raw Data (value types) across the thread boundary.
-                    // The MCPeerID is recovered from joinRequest.peerIDData on MainActor.
-                    let contextData = context
-                    Task { @MainActor [parent] in
-                        // Read joinRequestHandler on MainActor to avoid a data race —
-                        // this delegate method fires on MC's background queue.
-                        guard let joinRequestHandler = parent?.joinRequestHandler else {
-                            parent?.logger.error("Received invitation but no handler set")
-                            invitationHandler(false, nil)
+                parent.logger.trace("Reaceived invitation from: \(peerID)")
+                guard let joinRequestHandler = parent.joinRequestHandler else {
+                    parent.logger.error("Received invitation but no handler set")
+                    invitationHandler(false, nil)
+                    return
+                }
+                guard let context = context else {
+                    parent.logger.warning("\(peerID) Missing context, ignoring")
+                    invitationHandler(false, nil)
+                    return
+                }
+                let joinRequest: JoinRequest
+                do {
+                    joinRequest = try decoder.decode(JoinRequest.self, from: context)
+                } catch {
+                    parent.logger.warning("\(peerID) join request is malformed with error: \(error), ignoring")
+                    invitationHandler(false, nil)
+                    return
+                }
+                Task {
+                    do {
+                        guard try await joinRequestHandler(peerID, joinRequest) else {
+                            parent.logger.trace("Join request for \(peerID) rejected")
                             return
                         }
                         let joinRequest: JoinRequest
