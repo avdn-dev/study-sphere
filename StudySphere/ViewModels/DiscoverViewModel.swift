@@ -1,4 +1,5 @@
 import Foundation
+import MultipeerConnectivity
 import VISOR
 
 @Observable
@@ -8,36 +9,99 @@ final class DiscoverViewModel {
     enum Action {
         case startBrowsing
         case stopBrowsing
-//        case joinSession(host: DiscoveredSession)
+        case joinSession(room: RoomDiscoveryInfo)
         case refresh
     }
 
     struct State: Equatable {
-//        @Bound(\DiscoverViewModel.multipeerService) var discoveredSessions: [DiscoveredSession] = []
-//        @Bound(\DiscoverViewModel.multipeerService) var isBrowsing = false
-//        @Bound(\DiscoverViewModel.sessionInteractor) var activeSession: StudySession?
+        var discoveredRooms: [RoomDiscoveryInfo] = []
+        var isSearching = false
+        var isJoining = false
+        var error: String?
     }
 
     var state = State()
 
+    @Reaction(\DiscoverViewModel.multipeerService.discoveredRooms)
+    func syncDiscoveredRooms(rooms: Result<[MCPeerID: RoomDiscoveryInfo], any Error>?) {
+        switch rooms {
+        case .success(let roomMap):
+            state.discoveredRooms = Array(roomMap.values)
+            state.error = nil
+        case .failure(let error):
+            state.error = error.localizedDescription
+        case .none:
+            break
+        }
+    }
+
     func handle(_ action: Action) async {
-//        switch action {
-//        case .startBrowsing:
-//            multipeerService.startBrowsing()
-//        case .stopBrowsing:
-//            multipeerService.stopBrowsing()
-//        case .joinSession(let host):
-//            await sessionInteractor.joinSession(host: host)
-//            router.present(fullScreen: .activeSession)
-//        case .refresh:
-//            multipeerService.stopBrowsing()
-//            multipeerService.startBrowsing()
-//        }
+        switch action {
+        case .startBrowsing:
+            do {
+                state.isSearching = true
+                state.error = nil
+                try multipeerService.startLookingForRooms(using: profileService.displayName)
+            } catch {
+                state.isSearching = false
+                state.error = error.localizedDescription
+            }
+
+        case .stopBrowsing:
+            multipeerService.stopLookingForRooms()
+            state.isSearching = false
+
+        case .joinSession(let room):
+            guard !state.isJoining else { return }
+            state.isJoining = true
+            state.error = nil
+
+            do {
+                guard let profile = profileService.profile else {
+                    state.error = "No profile available"
+                    state.isJoining = false
+                    return
+                }
+
+                let niTokenData = nearbyInteractionService.localDiscoveryTokenData()
+                let accepted = try await studySessionService.joinSession(
+                    room: room,
+                    profile: profile,
+                    niTokenData: niTokenData
+                )
+
+                if accepted {
+                    multipeerService.stopLookingForRooms()
+                    state.isSearching = false
+                    router.dismissSheet()
+                    router.present(fullScreen: .activeSession)
+                } else {
+                    state.error = "Join request was rejected"
+                }
+            } catch {
+                state.error = error.localizedDescription
+            }
+            state.isJoining = false
+
+        case .refresh:
+            multipeerService.stopLookingForRooms()
+            state.discoveredRooms = []
+            do {
+                try multipeerService.startLookingForRooms(using: profileService.displayName)
+                state.isSearching = true
+                state.error = nil
+            } catch {
+                state.isSearching = false
+                state.error = error.localizedDescription
+            }
+        }
     }
 
     // MARK: - Private
 
     private let router: Router<AppScene>
     private let multipeerService: any MultipeerService
-    private let sessionInteractor: any SessionInteractor
+    private let studySessionService: any StudySessionService
+    private let profileService: any ProfileService
+    private let nearbyInteractionService: any NearbyInteractionService
 }

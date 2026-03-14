@@ -4,14 +4,16 @@ import Observation
 @Observable
 final class StudySession: Codable, Identifiable, Sendable {
     let id: UUID
-    let sessionName: String
+    let settings: SessionSettings
     let maxSize: Int
-    
-    init(id: UUID, sessionName: String, maxSize: Int) {
+    var isActive: Bool
+
+    init(id: UUID, settings: SessionSettings, maxSize: Int, isActive: Bool = false) {
         self.id = id
-        self.sessionName = sessionName
+        self.settings = settings
         precondition((1...8).contains(maxSize), "Invalid study session size")
         self.maxSize = maxSize
+        self.isActive = isActive
     }
 }
 

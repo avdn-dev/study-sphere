@@ -10,29 +10,21 @@ struct MainTabView: View {
         @Bindable var router = router
 
         return TabView(selection: $router.selectedTab) {
-            NavigationContainer(parentRouter: router, tab: .discover) {
-                DiscoverView()
+            NavigationContainer(parentRouter: router, tab: .focus) {
+                FocusView()
             }
             .tabItem {
-                Label("Discover", systemImage: "magnifyingglass")
+                Label("Focus", systemImage: "brain")
             }
-            .tag(AppTab.discover)
+            .tag(AppTab.focus)
 
-            NavigationContainer(parentRouter: router, tab: .create) {
-                CreateSessionView()
+            NavigationContainer(parentRouter: router, tab: .analytics) {
+                SessionAnalyticsView()
             }
             .tabItem {
-                Label("Create", systemImage: "plus.circle.fill")
+                Label("Analytics", systemImage: "chart.bar.fill")
             }
-            .tag(AppTab.create)
-
-            NavigationContainer(parentRouter: router, tab: .profile) {
-                ProfileView()
-            }
-            .tabItem {
-                Label("Profile", systemImage: "person.circle")
-            }
-            .tag(AppTab.profile)
+            .tag(AppTab.analytics)
         }
     }
 }

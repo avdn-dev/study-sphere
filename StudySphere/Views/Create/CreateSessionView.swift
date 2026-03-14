@@ -3,6 +3,7 @@ import VISOR
 
 @LazyViewModel(CreateSessionViewModel.self)
 struct CreateSessionView: View {
+  @Environment(Router<AppScene>.self) private var router
 
     var content: some View {
         @Bindable var viewModel = viewModel
@@ -56,5 +57,13 @@ struct CreateSessionView: View {
             }
         }
         .navigationTitle("Create Session")
+        .toolbarTitleDisplayMode(.inlineLarge)
+        .toolbar {
+            ToolbarItem(placement: .cancellationAction) {
+                Button("Cancel") {
+                    router.dismissSheet()
+                }
+            }
+        }
     }
 }

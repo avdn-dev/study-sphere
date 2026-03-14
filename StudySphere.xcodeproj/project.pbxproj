@@ -7,12 +7,59 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		425D70592F650202003B0B43 /* ManagedSettings.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 425D70582F650202003B0B43 /* ManagedSettings.framework */; };
+		425D705B2F650202003B0B43 /* ManagedSettingsUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 425D705A2F650202003B0B43 /* ManagedSettingsUI.framework */; };
+		425D70632F650202003B0B43 /* ShieldConfiguration.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 425D70562F650202003B0B43 /* ShieldConfiguration.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		96CFA1092F63F054009AFF34 /* VISOR in Frameworks */ = {isa = PBXBuildFile; productRef = 96CFA1082F63F054009AFF34 /* VISOR */; };
 /* End PBXBuildFile section */
 
+/* Begin PBXContainerItemProxy section */
+		425D70612F650202003B0B43 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 96CFA0EB2F63EF8F009AFF34 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 425D70552F650202003B0B43;
+			remoteInfo = ShieldConfiguration;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		425D70682F650202003B0B43 /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				425D70632F650202003B0B43 /* ShieldConfiguration.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
 /* Begin PBXFileReference section */
+		425D70562F650202003B0B43 /* ShieldConfiguration.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = ShieldConfiguration.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		425D70582F650202003B0B43 /* ManagedSettings.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = ManagedSettings.framework; path = System/Library/Frameworks/ManagedSettings.framework; sourceTree = SDKROOT; };
+		425D705A2F650202003B0B43 /* ManagedSettingsUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = ManagedSettingsUI.framework; path = System/Library/Frameworks/ManagedSettingsUI.framework; sourceTree = SDKROOT; };
 		96CFA0F32F63EF8F009AFF34 /* StudySphere.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = StudySphere.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		425D70642F650202003B0B43 /* Exceptions for "ShieldConfiguration" folder in "ShieldConfiguration" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 425D70552F650202003B0B43 /* ShieldConfiguration */;
+		};
+		96CFA0F52F63EF8F009AFF35 /* Exceptions for "StudySphere" folder in "StudySphere" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 96CFA0F22F63EF8F009AFF34 /* StudySphere */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		2D1D21032F6519FC007D1EB9 /* Audio */ = {
@@ -20,14 +67,34 @@
 			path = Audio;
 			sourceTree = "<group>";
 		};
+		425D705C2F650202003B0B43 /* ShieldConfiguration */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				425D70642F650202003B0B43 /* Exceptions for "ShieldConfiguration" folder in "ShieldConfiguration" target */,
+			);
+			path = ShieldConfiguration;
+			sourceTree = "<group>";
+		};
 		96CFA0F52F63EF8F009AFF34 /* StudySphere */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				96CFA0F52F63EF8F009AFF35 /* Exceptions for "StudySphere" folder in "StudySphere" target */,
+			);
 			path = StudySphere;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
+		425D70532F650202003B0B43 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				425D70592F650202003B0B43 /* ManagedSettings.framework in Frameworks */,
+				425D705B2F650202003B0B43 /* ManagedSettingsUI.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		96CFA0F02F63EF8F009AFF34 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -39,11 +106,22 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		425D70572F650202003B0B43 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				425D70582F650202003B0B43 /* ManagedSettings.framework */,
+				425D705A2F650202003B0B43 /* ManagedSettingsUI.framework */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
 		96CFA0EA2F63EF8F009AFF34 = {
 			isa = PBXGroup;
 			children = (
 				2D1D21032F6519FC007D1EB9 /* Audio */,
 				96CFA0F52F63EF8F009AFF34 /* StudySphere */,
+				425D705C2F650202003B0B43 /* ShieldConfiguration */,
+				425D70572F650202003B0B43 /* Frameworks */,
 				96CFA0F42F63EF8F009AFF34 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -52,6 +130,7 @@
 			isa = PBXGroup;
 			children = (
 				96CFA0F32F63EF8F009AFF34 /* StudySphere.app */,
+				425D70562F650202003B0B43 /* ShieldConfiguration.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -59,6 +138,28 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
+		425D70552F650202003B0B43 /* ShieldConfiguration */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 425D70652F650202003B0B43 /* Build configuration list for PBXNativeTarget "ShieldConfiguration" */;
+			buildPhases = (
+				425D70522F650202003B0B43 /* Sources */,
+				425D70532F650202003B0B43 /* Frameworks */,
+				425D70542F650202003B0B43 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				425D705C2F650202003B0B43 /* ShieldConfiguration */,
+			);
+			name = ShieldConfiguration;
+			packageProductDependencies = (
+			);
+			productName = ShieldConfiguration;
+			productReference = 425D70562F650202003B0B43 /* ShieldConfiguration.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
 		96CFA0F22F63EF8F009AFF34 /* StudySphere */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = 96CFA0FE2F63EF91009AFF34 /* Build configuration list for PBXNativeTarget "StudySphere" */;
@@ -66,10 +167,12 @@
 				96CFA0EF2F63EF8F009AFF34 /* Sources */,
 				96CFA0F02F63EF8F009AFF34 /* Frameworks */,
 				96CFA0F12F63EF8F009AFF34 /* Resources */,
+				425D70682F650202003B0B43 /* Embed Foundation Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				425D70622F650202003B0B43 /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				2D1D21032F6519FC007D1EB9 /* Audio */,
@@ -93,6 +196,9 @@
 				LastSwiftUpdateCheck = 2630;
 				LastUpgradeCheck = 2630;
 				TargetAttributes = {
+					425D70552F650202003B0B43 = {
+						CreatedOnToolsVersion = 26.3;
+					};
 					96CFA0F22F63EF8F009AFF34 = {
 						CreatedOnToolsVersion = 26.3;
 					};
@@ -116,11 +222,19 @@
 			projectRoot = "";
 			targets = (
 				96CFA0F22F63EF8F009AFF34 /* StudySphere */,
+				425D70552F650202003B0B43 /* ShieldConfiguration */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
+		425D70542F650202003B0B43 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		96CFA0F12F63EF8F009AFF34 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -131,6 +245,13 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
+		425D70522F650202003B0B43 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		96CFA0EF2F63EF8F009AFF34 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -140,7 +261,77 @@
 		};
 /* End PBXSourcesBuildPhase section */
 
+/* Begin PBXTargetDependency section */
+		425D70622F650202003B0B43 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 425D70552F650202003B0B43 /* ShieldConfiguration */;
+			targetProxy = 425D70612F650202003B0B43 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
 /* Begin XCBuildConfiguration section */
+		425D70662F650202003B0B43 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = ShieldConfiguration/ShieldConfiguration.entitlements;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = VPNR8289C6;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = ShieldConfiguration/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = ShieldConfiguration;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = studio.cgc.StudySphere.ShieldConfiguration;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		425D70672F650202003B0B43 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = ShieldConfiguration/ShieldConfiguration.entitlements;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = VPNR8289C6;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = ShieldConfiguration/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = ShieldConfiguration;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = studio.cgc.StudySphere.ShieldConfiguration;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
 		96CFA0FC2F63EF91009AFF34 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -271,18 +462,22 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = StudySphere/StudySphere.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = VPNR8289C6;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = StudySphere/Info.plist;
 				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "Local network access is required in order to send messages to other devices.";
+				INFOPLIST_KEY_NSMotionUsageDescription = "Used to detect when the device is stationary during a study session.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -306,18 +501,22 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = StudySphere/StudySphere.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = VPNR8289C6;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = StudySphere/Info.plist;
 				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "Local network access is required in order to send messages to other devices.";
+				INFOPLIST_KEY_NSMotionUsageDescription = "Used to detect when the device is stationary during a study session.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -339,6 +538,15 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		425D70652F650202003B0B43 /* Build configuration list for PBXNativeTarget "ShieldConfiguration" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				425D70662F650202003B0B43 /* Debug */,
+				425D70672F650202003B0B43 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 		96CFA0EE2F63EF8F009AFF34 /* Build configuration list for PBXProject "StudySphere" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
