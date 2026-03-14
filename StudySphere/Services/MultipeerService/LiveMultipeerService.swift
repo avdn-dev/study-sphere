@@ -39,6 +39,19 @@ final class LiveMultipeerService: MultipeerService {
     }
 
     @ObservationIgnored
+    private var _peerConnectedContinuation: AsyncStream<MCPeerID>.Continuation?
+    @ObservationIgnored
+    private lazy var _peerConnected: AsyncStream<MCPeerID> = {
+        AsyncStream { continuation in
+            self._peerConnectedContinuation = continuation
+        }
+    }()
+
+    var peerConnected: AsyncStream<MCPeerID> {
+        _peerConnected
+    }
+
+    @ObservationIgnored
     private var _peerDisconnectedContinuation: AsyncStream<MCPeerID>.Continuation?
     @ObservationIgnored
     private lazy var _peerDisconnected: AsyncStream<MCPeerID> = {
@@ -383,9 +396,8 @@ final class LiveMultipeerService: MultipeerService {
                         invitationHandler(false, nil)
                         return
                     }
-                    // Only pass raw Data (value types) across the thread boundary.
-                    // The MCPeerID is recovered from joinRequest.peerIDData on MainActor.
                     let contextData = context
+                    let mcPeerID = peerID // Capture the MC framework peerID before entering the Task
                     Task { @MainActor [parent] in
                         // Read joinRequestHandler on MainActor to avoid a data race —
                         // this delegate method fires on MC's background queue.
@@ -402,24 +414,16 @@ final class LiveMultipeerService: MultipeerService {
                             invitationHandler(false, nil)
                             return
                         }
-                        guard let peerID = try? NSKeyedUnarchiver.unarchivedObject(
-                            ofClass: MCPeerID.self,
-                            from: joinRequest.peerIDData
-                        ) else {
-                            parent?.logger.error("Failed to unarchive peerID from join request")
-                            invitationHandler(false, nil)
-                            return
-                        }
                         do {
-                            guard try await joinRequestHandler(peerID, joinRequest) else {
-                                parent?.logger.trace("Join request for \(peerID) rejected")
+                            guard try await joinRequestHandler(mcPeerID, joinRequest) else {
+                                parent?.logger.trace("Join request for \(mcPeerID) rejected")
                                 invitationHandler(false, nil)
                                 return
                             }
-                            parent?.logger.trace("Join request for \(peerID) accepted")
+                            parent?.logger.trace("Join request for \(mcPeerID) accepted")
                             invitationHandler(true, parent?._session)
                         } catch {
-                            parent?.logger.warning("Join request handler for \(peerID) threw an error: \(error)")
+                            parent?.logger.warning("Join request handler for \(mcPeerID) threw an error: \(error)")
                             invitationHandler(false, nil)
                         }
                     }
@@ -480,6 +484,7 @@ final class LiveMultipeerService: MultipeerService {
                     if parent.state == .lookingForParticipants {
                         parent.state = .connectedAsHost
                     }
+                    parent._peerConnectedContinuation?.yield(peerID)
                 case .notConnected:
                     parent.logger.trace("Peer \(peerID) disconnected")
                     parent._peerDisconnectedContinuation?.yield(peerID)

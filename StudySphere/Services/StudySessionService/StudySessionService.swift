@@ -63,6 +63,10 @@ final class LiveStudySessionService: StudySessionService {
     private var positionBroadcastTask: Task<Void, Never>?
     private var messageReceiveTask: Task<Void, Never>?
     private var disconnectListenTask: Task<Void, Never>?
+    private var peerConnectedTask: Task<Void, Never>?
+
+    /// Responses queued until the MC connection is fully established
+    private var pendingJoinResponses: [MCPeerID: SessionMessage] = [:]
 
     init(
         multipeerService: any MultipeerService,
@@ -108,8 +112,9 @@ final class LiveStudySessionService: StudySessionService {
             return self.handleJoinRequest(peerID: peerID, joinRequest: joinRequest)
         }
 
-        // Start listening for messages and disconnections
+        // Start listening for messages, connections, and disconnections
         startMessageReceiveLoop()
+        startPeerConnectedLoop()
         startDisconnectListenLoop()
 
         logger.info("Hosting session: \(session.settings.sessionName)")
@@ -267,7 +272,7 @@ final class LiveStudySessionService: StudySessionService {
         // Get leader's NI token to send back
         let leaderTokenData = nearbyInteractionService.localDiscoveryTokenData()
 
-        // Send acceptance with leader's NI token and current state
+        // Queue the response — it will be sent once the MC connection is established
         let response = SessionMessage.joinResponse(
             JoinResponse(
                 accepted: true,
@@ -276,24 +281,7 @@ final class LiveStudySessionService: StudySessionService {
                 participants: participants
             )
         )
-        do {
-            try multipeerService.send(response, to: [peerID], reliable: true)
-        } catch {
-            logger.error("Failed to send join response: \(error)")
-        }
-
-        // Broadcast updated participants to existing peers (exclude the new joiner who just got the list)
-        let existingPeers = peerIDMap.values.filter { $0 != peerID }
-        if !existingPeers.isEmpty {
-            let stateUpdate = SessionMessage.sessionStateUpdate(
-                SessionStateUpdate(participants: participants)
-            )
-            do {
-                try multipeerService.send(stateUpdate, to: Array(existingPeers), reliable: true)
-            } catch {
-                logger.error("Failed to broadcast state update: \(error)")
-            }
-        }
+        pendingJoinResponses[peerID] = response
 
         // Transition to lobby if first peer joined
         if phase == .hosting {
@@ -469,6 +457,43 @@ final class LiveStudySessionService: StudySessionService {
         }
     }
 
+    // MARK: - Peer Connected Handling (Leader)
+
+    private func startPeerConnectedLoop() {
+        peerConnectedTask?.cancel()
+        peerConnectedTask = Task { [weak self] in
+            guard let self else { return }
+            for await connectedPeerID in multipeerService.peerConnected {
+                guard !Task.isCancelled else { break }
+                self.handlePeerConnected(connectedPeerID)
+            }
+        }
+    }
+
+    private func handlePeerConnected(_ peerID: MCPeerID) {
+        // Send the queued join response now that the connection is established
+        if let response = pendingJoinResponses.removeValue(forKey: peerID) {
+            do {
+                try multipeerService.send(response, to: [peerID], reliable: true)
+            } catch {
+                logger.error("Failed to send join response to \(peerID): \(error)")
+            }
+
+            // Broadcast updated participants to existing peers (exclude the new joiner)
+            let existingPeers = peerIDMap.values.filter { $0 != peerID }
+            if !existingPeers.isEmpty {
+                let stateUpdate = SessionMessage.sessionStateUpdate(
+                    SessionStateUpdate(participants: participants)
+                )
+                do {
+                    try multipeerService.send(stateUpdate, to: Array(existingPeers), reliable: true)
+                } catch {
+                    logger.error("Failed to broadcast state update: \(error)")
+                }
+            }
+        }
+    }
+
     // MARK: - Disconnect Handling
 
     private func startDisconnectListenLoop() {
@@ -527,6 +552,8 @@ final class LiveStudySessionService: StudySessionService {
         positionBroadcastTask = nil
         messageReceiveTask?.cancel()
         messageReceiveTask = nil
+        peerConnectedTask?.cancel()
+        peerConnectedTask = nil
         disconnectListenTask?.cancel()
         disconnectListenTask = nil
 
@@ -539,6 +566,7 @@ final class LiveStudySessionService: StudySessionService {
         sessionStartDate = nil
         peerIDMap.removeAll()
         participantIDMap.removeAll()
+        pendingJoinResponses.removeAll()
         phase = .ended
     }
 }

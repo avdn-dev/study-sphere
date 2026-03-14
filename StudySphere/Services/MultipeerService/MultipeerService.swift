@@ -113,6 +113,7 @@ protocol MultipeerService: AnyObject {
 
     // Connection State
     var connectedPeers: [MCPeerID] { get }
+    var peerConnected: AsyncStream<MCPeerID> { get }
     var peerDisconnected: AsyncStream<MCPeerID> { get }
     
 }
