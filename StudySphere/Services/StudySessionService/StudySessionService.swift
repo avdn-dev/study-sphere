@@ -74,6 +74,18 @@ final class LiveStudySessionService: StudySessionService {
     /// Timers for grace periods of disconnected peers
     private var disconnectTimers: [UUID: Task<Void, Never>] = [:]
 
+    /// Monotonically increasing version for SessionStateUpdate ordering
+    private var stateVersion: UInt64 = 0
+    private var lastReceivedStateVersion: UInt64 = 0
+
+    /// Monotonically increasing sequence for PositionUpdate ordering
+    private var positionSequence: UInt64 = 0
+    private var lastPositionSequence: UInt64 = 0
+
+    /// Recently seen DistractionBroadcast IDs to prevent duplicate re-broadcasts
+    private var recentBroadcastIDs: Set<UUID> = []
+    private static let maxRecentBroadcastIDs = 50
+
     /// Key used for the peer's NI session with the leader (peer side only)
     private var leaderNIKey: String?
 
@@ -249,6 +261,7 @@ final class LiveStudySessionService: StudySessionService {
         // Broadcast to all peers
         let message = SessionMessage.distractionBroadcast(
             DistractionBroadcast(
+                id: UUID(),
                 participantID: profile.id,
                 status: status,
                 source: source
@@ -342,13 +355,7 @@ final class LiveStudySessionService: StudySessionService {
         peerIDMap.removeValue(forKey: participantID)
         pendingJoinTimers.removeValue(forKey: peerID)
 
-        // Broadcast updated state
-        if isLeader {
-            let stateUpdate = SessionMessage.sessionStateUpdate(
-                SessionStateUpdate(participants: participants)
-            )
-            try? multipeerService.sendToAll(stateUpdate, reliable: true)
-        }
+        broadcastStateUpdate()
 
         logger.info("Cleaned up failed join for \(peerID)")
     }
@@ -430,9 +437,14 @@ final class LiveStudySessionService: StudySessionService {
             }
 
         case .sessionStateUpdate(let update):
-            // Both sides: updated participants list from leader
+            // Discard stale state updates
+            guard update.version > lastReceivedStateVersion else {
+                logger.trace("Ignoring stale state update (v\(update.version) <= v\(self.lastReceivedStateVersion))")
+                return
+            }
+            lastReceivedStateVersion = update.version
             participants = update.participants
-            logger.trace("Participants updated: \(update.participants.count)")
+            logger.trace("Participants updated: \(update.participants.count) (v\(update.version))")
 
         case .sessionStarted(let started):
             // Peer side: session has begun
@@ -454,8 +466,14 @@ final class LiveStudySessionService: StudySessionService {
                 participants[index].status = broadcast.status
             }
 
-            // If leader, re-broadcast to other peers
+            // If leader, re-broadcast to other peers (with deduplication)
             if isLeader {
+                guard !recentBroadcastIDs.contains(broadcast.id) else { return }
+                recentBroadcastIDs.insert(broadcast.id)
+                if recentBroadcastIDs.count > Self.maxRecentBroadcastIDs {
+                    recentBroadcastIDs.removeFirst()
+                }
+
                 let otherPeers = peerIDMap.values.filter { $0 != peerID }
                 if !otherPeers.isEmpty {
                     do {
@@ -471,16 +489,17 @@ final class LiveStudySessionService: StudySessionService {
             }
 
         case .positionUpdate(let update):
-            // Peer side: apply positions from leader
+            // Peer side: apply positions from leader, discard out-of-order
             guard !isLeader else { return }
+            guard update.sequence > lastPositionSequence else { return }
+            lastPositionSequence = update.sequence
             for entry in update.entries {
                 if let index = participants.firstIndex(where: { $0.id == entry.participantID }) {
                     participants[index].position = PeerPosition(
                         x: Double(entry.x),
                         y: Double(entry.y),
-                        distanceFromCentroid: 0 // Will be computed by view if needed
+                        distanceFromCentroid: 0
                     )
-                    participants[index].status = entry.status
                 }
             }
         }
@@ -514,33 +533,39 @@ final class LiveStudySessionService: StudySessionService {
                 // Update local state
                 participants[i].position = pos
 
-                // Check if outside radius
+                // Check if outside radius — emit distraction broadcast rather than embedding in position
                 if nearbyInteractionService.isPeerOutsideRadius(peerIDString, radiusMeters: session.settings.radiusMeters) {
-                    if participants[i].status != .disconnected {
+                    if participants[i].status == .focused {
                         participants[i].status = .outsideCircle
+                        let broadcast = DistractionBroadcast(
+                            id: UUID(),
+                            participantID: participant.id,
+                            status: .outsideCircle,
+                            source: .leftCircle
+                        )
+                        try? multipeerService.sendToAll(.distractionBroadcast(broadcast), reliable: true)
                     }
                 }
 
                 entries.append(PositionUpdate.Entry(
                     participantID: participant.id,
                     x: Float(pos.x),
-                    y: Float(pos.y),
-                    status: participants[i].status
+                    y: Float(pos.y)
                 ))
             } else if let profile = profileService.profile, participant.id == profile.id {
                 // Leader's own position is at origin
                 entries.append(PositionUpdate.Entry(
                     participantID: participant.id,
                     x: 0,
-                    y: 0,
-                    status: participants[i].status
+                    y: 0
                 ))
             }
         }
 
         guard !entries.isEmpty else { return }
 
-        let message = SessionMessage.positionUpdate(PositionUpdate(entries: entries))
+        positionSequence += 1
+        let message = SessionMessage.positionUpdate(PositionUpdate(sequence: positionSequence, entries: entries))
         do {
             try multipeerService.sendToAll(message, reliable: false)
         } catch {
@@ -563,18 +588,8 @@ final class LiveStudySessionService: StudySessionService {
                 logger.error("Failed to send join response to \(peerID): \(error)")
             }
 
-            // Broadcast updated participants to existing peers (exclude the new joiner)
-            let existingPeers = peerIDMap.values.filter { $0 != peerID }
-            if !existingPeers.isEmpty {
-                let stateUpdate = SessionMessage.sessionStateUpdate(
-                    SessionStateUpdate(participants: participants)
-                )
-                do {
-                    try multipeerService.send(stateUpdate, to: Array(existingPeers), reliable: true)
-                } catch {
-                    logger.error("Failed to broadcast state update: \(error)")
-                }
-            }
+            // Broadcast updated participants to existing peers
+            broadcastStateUpdate()
         }
     }
 
@@ -634,8 +649,9 @@ final class LiveStudySessionService: StudySessionService {
 
     private func broadcastStateUpdate() {
         guard isLeader else { return }
+        stateVersion += 1
         let stateUpdate = SessionMessage.sessionStateUpdate(
-            SessionStateUpdate(participants: participants)
+            SessionStateUpdate(version: stateVersion, participants: participants)
         )
         do {
             try multipeerService.sendToAll(stateUpdate, reliable: true)
@@ -672,6 +688,11 @@ final class LiveStudySessionService: StudySessionService {
         participantIDMap.removeAll()
         pendingJoinResponses.removeAll()
         leaderNIKey = nil
+        stateVersion = 0
+        lastReceivedStateVersion = 0
+        positionSequence = 0
+        lastPositionSequence = 0
+        recentBroadcastIDs.removeAll()
         phase = .ended
     }
 }
