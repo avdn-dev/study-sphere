@@ -22,6 +22,7 @@ struct StudySphereApp: App {
 
         // 2. Create services
         let profileService = LiveProfileService(modelContext: modelContext)
+        profileService.load()
         let multipeerService = LiveMultipeerService(peerID: profileService.peerID!)
         let nearbyInteractionService = LiveNearbyInteractionService()
         let motionService = LiveMotionService()
@@ -51,24 +52,24 @@ struct StudySphereApp: App {
         let mainTabViewModelFactory = MainTabViewModel.Factory {
             MainTabViewModel(router: router)
         }
-//        let discoverViewModelFactory: DiscoverViewModel.Factory = .routed { router in
-//            DiscoverViewModel(
-//                router: router,
-//                multipeerService: multipeerService,
-//                sessionInteractor: sessionInteractor)
-//        }
-//        let createSessionViewModelFactory: CreateSessionViewModel.Factory = .routed { router in
-//            CreateSessionViewModel(
-//                router: router,
-//                sessionInteractor: sessionInteractor)
-//        }
-//        let activeSessionViewModelFactory: ActiveSessionViewModel.Factory = .routed { router in
-//            ActiveSessionViewModel(
-//                router: router,
-//                sessionInteractor: sessionInteractor,
-//                distractionInteractor: distractionInteractor,
-//                nearbyInteractionService: nearbyInteractionService)
-//        }
+        let discoverViewModelFactory: DiscoverViewModel.Factory = .routed { router in
+            DiscoverViewModel(
+                router: router,
+                multipeerService: multipeerService,
+                sessionInteractor: sessionInteractor)
+        }
+        let createSessionViewModelFactory: CreateSessionViewModel.Factory = .routed { router in
+            CreateSessionViewModel(
+                router: router,
+                sessionInteractor: sessionInteractor)
+        }
+        let activeSessionViewModelFactory: ActiveSessionViewModel.Factory = .routed { router in
+            ActiveSessionViewModel(
+                router: router,
+                sessionInteractor: sessionInteractor,
+                distractionInteractor: distractionInteractor,
+                nearbyInteractionService: nearbyInteractionService)
+        }
         let profileViewModelFactory = ProfileViewModel.Factory {
             ProfileViewModel(profileService: profileService)
         }
@@ -81,9 +82,9 @@ struct StudySphereApp: App {
         // 6. Assign to @State properties
         _router = State(initialValue: router)
         _mainTabViewModelFactory = State(initialValue: mainTabViewModelFactory)
-//        _discoverViewModelFactory = State(initialValue: discoverViewModelFactory)
-//        _createSessionViewModelFactory = State(initialValue: createSessionViewModelFactory)
-//        _activeSessionViewModelFactory = State(initialValue: activeSessionViewModelFactory)
+        _discoverViewModelFactory = State(initialValue: discoverViewModelFactory)
+        _createSessionViewModelFactory = State(initialValue: createSessionViewModelFactory)
+        _activeSessionViewModelFactory = State(initialValue: activeSessionViewModelFactory)
         _profileViewModelFactory = State(initialValue: profileViewModelFactory)
         _appSelectionViewModelFactory = State(initialValue: appSelectionViewModelFactory)
         _profileService = State(initialValue: profileService)
@@ -96,9 +97,9 @@ struct StudySphereApp: App {
             MainTabView()
                 .environment(router)
                 .environment(mainTabViewModelFactory)
-//                .environment(discoverViewModelFactory)
-//                .environment(createSessionViewModelFactory)
-//                .environment(activeSessionViewModelFactory)
+                .environment(discoverViewModelFactory)
+                .environment(createSessionViewModelFactory)
+                .environment(activeSessionViewModelFactory)
                 .environment(profileViewModelFactory)
                 .environment(appSelectionViewModelFactory)
                 .task { profileService.load() }
@@ -109,9 +110,9 @@ struct StudySphereApp: App {
 
     @State private var router: Router<AppScene>
     @State private var mainTabViewModelFactory: MainTabViewModel.Factory
-//    @State private var discoverViewModelFactory: DiscoverViewModel.Factory
-//    @State private var createSessionViewModelFactory: CreateSessionViewModel.Factory
-//    @State private var activeSessionViewModelFactory: ActiveSessionViewModel.Factory
+    @State private var discoverViewModelFactory: DiscoverViewModel.Factory
+    @State private var createSessionViewModelFactory: CreateSessionViewModel.Factory
+    @State private var activeSessionViewModelFactory: ActiveSessionViewModel.Factory
     @State private var profileViewModelFactory: ProfileViewModel.Factory
     @State private var appSelectionViewModelFactory: AppSelectionViewModel.Factory
     @State private var profileService: LiveProfileService

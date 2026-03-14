@@ -224,7 +224,7 @@ final class LiveMultipeerService: MultipeerService {
             peer: peerID,
             discoveryInfo: RoomDiscoveryInfo(
                 peerID: peerID,
-                roomName: session.sessionName
+                roomName: session.settings.sessionName
             ).discoveryInfo,
             serviceType: Self.roomHostingServiceType
         )
