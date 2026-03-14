@@ -11,6 +11,8 @@
 		<string>audio</string>
 		<string>nearby-interaction</string>
 	</array>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>StudySphere uses the local network to discover and connect with nearby study session participants.</string>
 	<key>NSBonjourServices</key>
 	<array>
 		<string>_SSRoomHost._tcp</string>
