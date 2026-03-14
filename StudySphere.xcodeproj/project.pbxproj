@@ -7,10 +7,6 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		425D70E82F653A34003B0B43 /* MLXEmbedders in Frameworks */ = {isa = PBXBuildFile; productRef = 425D70E72F653A34003B0B43 /* MLXEmbedders */; };
-		425D70EA2F653A34003B0B43 /* MLXLLM in Frameworks */ = {isa = PBXBuildFile; productRef = 425D70E92F653A34003B0B43 /* MLXLLM */; };
-		425D70EC2F653A34003B0B43 /* MLXLMCommon in Frameworks */ = {isa = PBXBuildFile; productRef = 425D70EB2F653A34003B0B43 /* MLXLMCommon */; };
-		425D70EE2F653A34003B0B43 /* MLXVLM in Frameworks */ = {isa = PBXBuildFile; productRef = 425D70ED2F653A34003B0B43 /* MLXVLM */; };
 		96CFA1092F63F054009AFF34 /* VISOR in Frameworks */ = {isa = PBXBuildFile; productRef = 96CFA1082F63F054009AFF34 /* VISOR */; };
 /* End PBXBuildFile section */
 
@@ -31,10 +27,6 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				425D70EE2F653A34003B0B43 /* MLXVLM in Frameworks */,
-				425D70EA2F653A34003B0B43 /* MLXLLM in Frameworks */,
-				425D70E82F653A34003B0B43 /* MLXEmbedders in Frameworks */,
-				425D70EC2F653A34003B0B43 /* MLXLMCommon in Frameworks */,
 				96CFA1092F63F054009AFF34 /* VISOR in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -79,10 +71,6 @@
 			name = StudySphere;
 			packageProductDependencies = (
 				96CFA1082F63F054009AFF34 /* VISOR */,
-				425D70E72F653A34003B0B43 /* MLXEmbedders */,
-				425D70E92F653A34003B0B43 /* MLXLLM */,
-				425D70EB2F653A34003B0B43 /* MLXLMCommon */,
-				425D70ED2F653A34003B0B43 /* MLXVLM */,
 			);
 			productName = StudySphere;
 			productReference = 96CFA0F32F63EF8F009AFF34 /* StudySphere.app */;
@@ -114,7 +102,6 @@
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				96CFA1072F63F054009AFF34 /* XCRemoteSwiftPackageReference "VISOR" */,
-				425D70E62F653A34003B0B43 /* XCRemoteSwiftPackageReference "mlx-swift-lm" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 96CFA0F42F63EF8F009AFF34 /* Products */;
@@ -368,14 +355,6 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
-		425D70E62F653A34003B0B43 /* XCRemoteSwiftPackageReference "mlx-swift-lm" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/ml-explore/mlx-swift-lm";
-			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 2.30.6;
-			};
-		};
 		96CFA1072F63F054009AFF34 /* XCRemoteSwiftPackageReference "VISOR" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/avdn-dev/VISOR";
@@ -387,26 +366,6 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
-		425D70E72F653A34003B0B43 /* MLXEmbedders */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 425D70E62F653A34003B0B43 /* XCRemoteSwiftPackageReference "mlx-swift-lm" */;
-			productName = MLXEmbedders;
-		};
-		425D70E92F653A34003B0B43 /* MLXLLM */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 425D70E62F653A34003B0B43 /* XCRemoteSwiftPackageReference "mlx-swift-lm" */;
-			productName = MLXLLM;
-		};
-		425D70EB2F653A34003B0B43 /* MLXLMCommon */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 425D70E62F653A34003B0B43 /* XCRemoteSwiftPackageReference "mlx-swift-lm" */;
-			productName = MLXLMCommon;
-		};
-		425D70ED2F653A34003B0B43 /* MLXVLM */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 425D70E62F653A34003B0B43 /* XCRemoteSwiftPackageReference "mlx-swift-lm" */;
-			productName = MLXVLM;
-		};
 		96CFA1082F63F054009AFF34 /* VISOR */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = 96CFA1072F63F054009AFF34 /* XCRemoteSwiftPackageReference "VISOR" */;
