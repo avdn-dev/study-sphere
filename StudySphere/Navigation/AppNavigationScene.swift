@@ -13,9 +13,8 @@ enum AppScene: @MainActor NavigationScene {
 // MARK: - AppTab
 
 enum AppTab: Int, TabDestination {
-    case discover = 0
-    case create = 1
-    case profile = 2
+    case create = 0
+    case profile = 1
 }
 
 // MARK: - AppPush

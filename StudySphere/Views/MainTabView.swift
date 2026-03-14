@@ -10,14 +10,6 @@ struct MainTabView: View {
         @Bindable var router = router
 
         return TabView(selection: $router.selectedTab) {
-            NavigationContainer(parentRouter: router, tab: .discover) {
-                DiscoverView()
-            }
-            .tabItem {
-                Label("Discover", systemImage: "magnifyingglass")
-            }
-            .tag(AppTab.discover)
-
             NavigationContainer(parentRouter: router, tab: .create) {
                 CreateSessionView()
             }

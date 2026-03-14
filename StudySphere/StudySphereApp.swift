@@ -48,7 +48,7 @@ struct StudySphereApp: App {
             level: 0,
             identifierTab: nil,
             logger: Logger(subsystem: "studio.cgc.StudySphere", category: "Router"))
-        router.selectedTab = .discover
+      router.selectedTab = .create
 
         // 5. Create ViewModel factories
         let mainTabViewModelFactory = MainTabViewModel.Factory {
