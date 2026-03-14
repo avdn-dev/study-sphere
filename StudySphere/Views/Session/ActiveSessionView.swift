@@ -4,6 +4,7 @@ import VISOR
 @LazyViewModel(ActiveSessionViewModel.self)
 struct ActiveSessionView: View {
   @Environment(\.dismiss) private var dismiss
+    @Environment(Router<AppScene>.self) private var router
 
     @State private var isPulsing = false
 
@@ -53,6 +54,7 @@ struct ActiveSessionView: View {
         }
         .onChange(of: viewModel.state.phase) { _, newPhase in
             if newPhase == .ended {
+                router.dismissSheet()
                 dismiss()
             }
         }
