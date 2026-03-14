@@ -523,10 +523,8 @@ final class LiveStudySessionService: StudySessionService {
             return
         }
 
-        // Update participant status
-        if let index = participants.firstIndex(where: { $0.id == participantID }) {
-            participants[index].status = .disconnected
-        }
+        // Remove participant from the session
+        participants.removeAll { $0.id == participantID }
 
         // Stop NI session for this peer
         nearbyInteractionService.stopSession(for: participantID.uuidString)
