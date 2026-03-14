@@ -1,3 +1,4 @@
+import NearbyInteraction
 import OSLog
 import SwiftData
 import SwiftUI
@@ -9,6 +10,7 @@ struct StudySphereApp: App {
     // MARK: Lifecycle
 
     init() {
+        print("NI supported:", NISession.deviceCapabilities.supportsPreciseDistanceMeasurement)
         // 1. SwiftData container and context for profile/session history
         let schema = Schema([SessionHistoryEntryRecord.self])
         let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
