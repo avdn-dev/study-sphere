@@ -557,6 +557,11 @@ final class LiveStudySessionService: StudySessionService {
             } catch {
                 logger.error("Failed to broadcast disconnect update: \(error)")
             }
+
+            // Revert to hosting phase if only the leader remains in lobby
+            if phase == .lobby && participants.count == 1 {
+                phase = .hosting
+            }
         }
 
         logger.info("Peer disconnected: \(participantID)")

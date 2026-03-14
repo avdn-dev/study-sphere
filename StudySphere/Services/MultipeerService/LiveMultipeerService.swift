@@ -470,6 +470,10 @@ final class LiveMultipeerService: MultipeerService {
                         parent.peerConnectedHandler?(peerID)
                     case .notConnected:
                         parent.logger.trace("Peer \(peerID) disconnected")
+                        if parent.state == .connectedAsHost,
+                           parent._session?.connectedPeers.isEmpty == true {
+                            parent.state = .lookingForParticipants
+                        }
                         parent.peerDisconnectedHandler?(peerID)
                     case .connecting:
                         parent.logger.trace("Peer \(peerID) connecting...")
