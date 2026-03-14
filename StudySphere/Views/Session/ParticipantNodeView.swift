@@ -6,13 +6,23 @@ struct ParticipantNodeView: View {
 
     var body: some View {
         VStack(spacing: 4) {
-            Circle()
-                .fill(statusColor)
-                .frame(width: 44, height: 44)
-                .overlay {
-                    Image(systemName: "person.fill")
-                        .foregroundStyle(.white)
-                }
+            if let imageData = participant.avatarImageData,
+               let uiImage = UIImage(data: imageData) {
+                Image(uiImage: uiImage)
+                    .resizable()
+                    .scaledToFill()
+                    .frame(width: 44, height: 44)
+                    .clipShape(Circle())
+                    .overlay(Circle().stroke(statusColor, lineWidth: 2))
+            } else {
+                Circle()
+                    .fill(statusColor)
+                    .frame(width: 44, height: 44)
+                    .overlay {
+                        Image(systemName: "person.fill")
+                            .foregroundStyle(.white)
+                    }
+            }
 
             Text(participant.name)
                 .font(.caption2)

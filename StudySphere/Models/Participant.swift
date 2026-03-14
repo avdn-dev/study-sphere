@@ -5,6 +5,7 @@ struct Participant: Codable, Equatable, Identifiable, Hashable, Sendable {
     let peerIDData: Data
     var name: String
     var avatarSystemName: String = "person.circle.fill"
+    var avatarImageData: Data?
     var status: ParticipantStatus
     var position: PeerPosition?
 }

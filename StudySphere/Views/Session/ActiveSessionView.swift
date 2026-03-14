@@ -141,10 +141,21 @@ struct ActiveSessionView: View {
     private func avatarView(participant: Participant, status: ParticipantStatus) -> some View {
         let color = avatarColor(for: status)
 
-        Image(systemName: participant.avatarSystemName)
-            .font(.system(size: 32))
-            .foregroundStyle(color)
-            .shadow(color: color.opacity(0.6), radius: 6)
+        if let imageData = participant.avatarImageData,
+           let uiImage = UIImage(data: imageData) {
+            Image(uiImage: uiImage)
+                .resizable()
+                .scaledToFill()
+                .frame(width: 40, height: 40)
+                .clipShape(Circle())
+                .overlay(Circle().stroke(color, lineWidth: 2))
+                .shadow(color: color.opacity(0.6), radius: 6)
+        } else {
+            Image(systemName: participant.avatarSystemName)
+                .font(.system(size: 32))
+                .foregroundStyle(color)
+                .shadow(color: color.opacity(0.6), radius: 6)
+        }
     }
 
     private func avatarColor(for status: ParticipantStatus) -> Color {

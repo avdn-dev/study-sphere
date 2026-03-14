@@ -12,13 +12,15 @@ struct JoinRequest: Codable, Equatable, Sendable {
     let participantID: UUID
     let name: String
     let avatarSystemName: String
+    let avatarImageData: Data?
     let peerIDData: Data
 
-    init(discoveryTokenData: Data, participantID: UUID, name: String, avatarSystemName: String = "person.circle.fill", peerIDData: Data) {
+    init(discoveryTokenData: Data, participantID: UUID, name: String, avatarSystemName: String = "person.circle.fill", avatarImageData: Data? = nil, peerIDData: Data) {
         self.discoveryTokenData = discoveryTokenData
         self.participantID = participantID
         self.name = name
         self.avatarSystemName = avatarSystemName
+        self.avatarImageData = avatarImageData
         self.peerIDData = peerIDData
     }
 }

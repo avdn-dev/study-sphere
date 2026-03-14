@@ -101,6 +101,7 @@ final class LiveStudySessionService: StudySessionService {
                 id: profile.id,
                 peerIDData: profile.peerIDData,
                 name: profile.name,
+                avatarImageData: profile.avatarImageData,
                 status: .focused
             )
             participants = [selfParticipant]
@@ -180,6 +181,7 @@ final class LiveStudySessionService: StudySessionService {
             discoveryTokenData: niTokenData,
             participantID: profile.id,
             name: profile.name,
+            avatarImageData: profile.avatarImageData,
             peerIDData: profile.peerIDData
         )
 
@@ -264,6 +266,7 @@ final class LiveStudySessionService: StudySessionService {
             peerIDData: joinRequest.peerIDData,
             name: joinRequest.name,
             avatarSystemName: joinRequest.avatarSystemName,
+            avatarImageData: joinRequest.avatarImageData,
             status: .focused
         )
         participants.append(newParticipant)
