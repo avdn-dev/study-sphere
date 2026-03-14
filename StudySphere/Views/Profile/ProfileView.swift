@@ -4,6 +4,9 @@ import VISOR
 @LazyViewModel(ProfileViewModel.self)
 struct ProfileView: View {
 
+    @State private var editedName: String = "Student"
+    @State private var selectedAvatarSystemName: String = "person.circle.fill"
+
     var content: some View {
         List {
             // Profile card
@@ -21,6 +24,53 @@ struct ProfileView: View {
                     }
                 }
                 .padding(.vertical, 8)
+            }
+
+            // Edit profile
+            Section("Edit Profile") {
+                TextField("Name", text: $editedName)
+
+                VStack(alignment: .leading, spacing: 8) {
+                  Text("Avatar")
+                    .font(.subheadline.bold())
+                    
+
+                  let avatars = ["person.circle.fill",
+                                 "person.crop.circle.fill",
+                                 "person.2.circle.fill",
+                                 "person.crop.circle.fill.badge.checkmark",
+                                 "person.circle",
+                                 "person.crop.circle",
+                                 "person.2.circle",
+                                 "person.crop.circle.badge.checkmark"]
+                    
+                  ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 16) {
+                      ForEach(avatars, id: \.self) { symbol in
+                        Button {
+                          selectedAvatarSystemName = symbol
+                          Task { await viewModel.handle(.updateAvatar(symbol)) }
+                        } label: {
+                          Image(systemName: symbol)
+                            .font(.system(size: 32))
+                            .foregroundStyle(symbol == selectedAvatarSystemName ? Color.accentColor : Color.primary)
+                            .padding(8)
+                            .background(
+                              Circle()
+                                .strokeBorder(symbol == selectedAvatarSystemName ? Color.accentColor : .clear, lineWidth: 2))
+                        }
+                        .buttonStyle(.plain)
+                      }
+                    }
+                    .padding(.vertical, 4)
+                  }
+                }
+
+                Button("Save Name") {
+                  Task { await viewModel.handle(.updateName(editedName)) }
+                }
+                .disabled(editedName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                          || editedName == (viewModel.state.profile?.name ?? "Student"))
             }
 
             // Stats
@@ -67,6 +117,10 @@ struct ProfileView: View {
             }
         }
         .navigationTitle("Profile")
-        .task { await viewModel.handle(.loadProfile) }
+        .task {
+            await viewModel.handle(.loadProfile)
+            editedName = viewModel.state.profile?.name ?? "Student"
+            selectedAvatarSystemName = viewModel.state.profile?.avatarSystemName ?? "person.circle.fill"
+        }
     }
 }
