@@ -97,7 +97,7 @@ struct ProfileView: View {
           .frame(width: 80, height: 80)
           .clipShape(Circle())
       } else {
-        Image(systemName: "person.circle.fill")
+        Image(systemName: "person.crop.circle.fill")
           .font(.system(size: 80))
           .foregroundStyle(.secondary)
       }

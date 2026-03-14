@@ -135,7 +135,7 @@ struct EditProfileView: View {
                 .frame(width: 100, height: 100)
                 .clipShape(Circle())
         } else {
-            Image(systemName: "person.circle.fill")
+            Image(systemName: "person.crop.circle.fill")
                 .font(.system(size: 100))
                 .foregroundStyle(.secondary)
         }

@@ -15,7 +15,7 @@ struct JoinRequest: Codable, Equatable, Sendable {
     let avatarImageData: Data?
     let peerIDData: Data
 
-    init(discoveryTokenData: Data, participantID: UUID, name: String, avatarSystemName: String = "person.circle.fill", avatarImageData: Data? = nil, peerIDData: Data) {
+    init(discoveryTokenData: Data, participantID: UUID, name: String, avatarSystemName: String = "person.crop.circle.fill", avatarImageData: Data? = nil, peerIDData: Data) {
         self.discoveryTokenData = discoveryTokenData
         self.participantID = participantID
         self.name = name

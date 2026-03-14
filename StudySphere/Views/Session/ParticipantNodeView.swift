@@ -19,7 +19,7 @@ struct ParticipantNodeView: View {
                     .fill(statusColor)
                     .frame(width: 44, height: 44)
                     .overlay {
-                        Image(systemName: "person.fill")
+                        Image(systemName: "person.crop.circle.fill")
                             .foregroundStyle(.white)
                     }
             }
