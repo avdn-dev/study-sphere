@@ -34,10 +34,13 @@ enum AppPush: PushDestination {
 
 enum AppSheet: @MainActor SheetDestination {
     case appSelection
+  case profile
 
     var id: String {
         switch self {
         case .appSelection: "appSelection"
+        case .profile:
+          "profile"
         }
     }
 
@@ -45,6 +48,8 @@ enum AppSheet: @MainActor SheetDestination {
         switch self {
         case .appSelection:
             AppSelectionView()
+        case .profile:
+          ProfileView()
         }
     }
 }
