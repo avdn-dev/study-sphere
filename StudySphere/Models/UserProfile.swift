@@ -4,7 +4,7 @@ import MultipeerConnectivity
 struct UserProfile: Codable, Equatable, Identifiable, Sendable {
     let id: UUID
     var name: String
-    /// JPEG (or PNG) data for profile avatar; nil means use placeholder.
+    /// HEIC image data for profile avatar; nil means use placeholder.
     var avatarImageData: Data?
     /// Archived MCPeerID representing a stable local peer identity.
     var peerIDData: Data
