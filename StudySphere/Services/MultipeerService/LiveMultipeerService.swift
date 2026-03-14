@@ -191,6 +191,12 @@ final class LiveMultipeerService: MultipeerService {
         )
     }
     
+    // MARK: - Sending Messages
+    
+    func send(message: Void) throws {
+        
+    }
+    
     // MARK: - Delegate
     
     private final class _MCDelegate: NSObject,
@@ -342,12 +348,14 @@ final class LiveMultipeerService: MultipeerService {
                      didReceive stream: InputStream,
                      withName streamName: String,
                      fromPeer peerID: MCPeerID) {
+            parent.logger.warning("\(#function): Not Supported")
         }
         
         func session(_ session: MCSession,
                      didStartReceivingResourceWithName resourceName: String,
                      fromPeer peerID: MCPeerID,
                      with progress: Progress) {
+            parent.logger.warning("\(#function): Not Supported")
         }
         
         func session(_ session: MCSession,
@@ -355,6 +363,7 @@ final class LiveMultipeerService: MultipeerService {
                      fromPeer peerID: MCPeerID,
                      at localURL: URL?,
                      withError error: (any Error)?) {
+            parent.logger.warning("\(#function): Not Supported")
         }
         
     }

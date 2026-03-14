@@ -61,6 +61,10 @@ struct ParticipantDiscoveryInfo: Equatable {
     
 }
 
+struct RoomConfiguration {
+    var displayName: String
+}
+
 @Stubbable
 @Spyable
 protocol MultipeerService: AnyObject {
@@ -85,11 +89,11 @@ protocol MultipeerService: AnyObject {
     func stopLookingForParticipants()
     
     var currentRoom: RoomDiscoveryInfo? { get }
-    func createNewRoom(with info: RoomDiscoveryInfo) throws
     
     // Sending Messages
     #warning("TODO: Decide on what messages to send")
     var messages: AsyncStream<Void> { get }
+    func send(message: Void) throws
     
 }
 

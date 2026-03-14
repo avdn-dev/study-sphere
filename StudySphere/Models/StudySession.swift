@@ -1,6 +1,6 @@
 import Foundation
 
-struct StudySession: Codable, Equatable, Identifiable, Sendable {
+final class StudySession: Codable, Identifiable, Sendable {
     let id: UUID
     let hostName: String
     let hostPeerIDData: Data
@@ -8,6 +8,12 @@ struct StudySession: Codable, Equatable, Identifiable, Sendable {
     var startedAt: Date?
     var endedAt: Date?
     var participants: [Participant]
-
+    
     var isActive: Bool { startedAt != nil && endedAt == nil }
+}
+
+extension StudySession: Equatable {
+    static func == (lhs: StudySession, rhs: StudySession) -> Bool {
+        return lhs.id == rhs.id
+    }
 }
