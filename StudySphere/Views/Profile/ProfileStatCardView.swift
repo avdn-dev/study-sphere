@@ -7,7 +7,7 @@
 
 import SwiftUI
 
-struct StatCardView: View {
+struct ProfileStatCardView: View {
   let icon: String
   let value: String
   let label: String
@@ -30,5 +30,5 @@ struct StatCardView: View {
 }
 
 #Preview {
-    StatCardView(icon: "pencil", value: "10", label: "Chicken")
+    ProfileStatCardView(icon: "pencil", value: "10", label: "Chicken")
 }
