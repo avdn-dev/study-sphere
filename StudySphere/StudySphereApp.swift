@@ -66,8 +66,7 @@ struct StudySphereApp: App {
                 router: router,
                 multipeerService: multipeerService,
                 studySessionService: studySessionService,
-                profileService: profileService,
-                nearbyInteractionService: nearbyInteractionService)
+                profileService: profileService)
         }
         let createSessionViewModelFactory: CreateSessionViewModel.Factory = .routed { router in
             CreateSessionViewModel(
@@ -130,6 +129,7 @@ struct StudySphereApp: App {
                 .environment(appSelectionViewModelFactory)
                 .environment(screenTimeViewModelFactory)
                 .environment(profileCameraViewModelFactory)
+                .environment(profileService)
                 .preferredColorScheme(.dark)
                 .task { profileService.load() }
         }

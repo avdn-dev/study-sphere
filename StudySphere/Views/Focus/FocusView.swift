@@ -4,6 +4,7 @@ import VISOR
 struct FocusView: View {
 
     @Environment(Router<AppScene>.self) private var router
+    @Environment(LiveProfileService.self) private var profileService
 
     var body: some View {
         VStack(spacing: 32) {
@@ -68,8 +69,21 @@ struct FocusView: View {
         .navigationTitle("Focus")
         .toolbarTitleDisplayMode(.inlineLarge)
         .toolbar {
-            Button("Profile", systemImage: "person.crop.circle.fill") {
-                router.present(sheet: .profile)
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    router.present(sheet: .profile)
+                } label: {
+                    if let image = profileService.profileImage {
+                        Image(uiImage: image)
+                            .resizable()
+                            .scaledToFill()
+                            .frame(width: 30, height: 30)
+                            .clipShape(Circle())
+                    } else {
+                        Image(systemName: "person.crop.circle.fill")
+                    }
+                }
+                .accessibilityLabel("Profile")
             }
         }
     }
