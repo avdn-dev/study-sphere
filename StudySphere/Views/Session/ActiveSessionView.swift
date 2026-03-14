@@ -156,21 +156,10 @@ struct ActiveSessionView: View {
     private func avatarView(participant: Participant, status: ParticipantStatus) -> some View {
         let color = avatarColor(for: status)
 
-        ZStack {
-            Circle()
-                .fill(.ultraThinMaterial)
-                .frame(width: 36, height: 36)
-
-            Text(String(participant.name.prefix(1)))
-                .font(.system(size: 16, weight: .semibold))
-                .foregroundStyle(.white)
-        }
-        .overlay {
-            Circle()
-                .strokeBorder(color, lineWidth: 2)
-                .frame(width: 36, height: 36)
-        }
-        .shadow(color: color.opacity(0.6), radius: 6)
+        Image(systemName: participant.avatarSystemName)
+            .font(.system(size: 32))
+            .foregroundStyle(color)
+            .shadow(color: color.opacity(0.6), radius: 6)
     }
 
     private func avatarColor(for status: ParticipantStatus) -> Color {

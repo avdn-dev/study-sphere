@@ -15,6 +15,13 @@ final class StudySphereSimulator {
     private let ids: [UUID] = (0..<5).map { _ in UUID() }
 
     private let names = ["Alice", "Bob", "Carol", "Dave", "Eve"]
+    private let avatars = [
+        "person.circle.fill",
+        "figure.walk.circle.fill",
+        "star.circle.fill",
+        "heart.circle.fill",
+        "bolt.circle.fill"
+    ]
 
     // Base angles for circular arrangement (radians)
     private let baseAngles: [Double] = (0..<5).map { Double($0) * (.pi * 2.0 / 5.0) }
@@ -28,6 +35,7 @@ final class StudySphereSimulator {
                 id: ids[i],
                 peerIDData: peerData,
                 name: names[i],
+                avatarSystemName: avatars[i],
                 status: .focused
             ))
             statuses[ids[i]] = .focused
