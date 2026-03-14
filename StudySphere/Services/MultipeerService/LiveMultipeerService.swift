@@ -277,6 +277,14 @@ final class LiveMultipeerService: MultipeerService {
         logger.trace("\(#function): Session updated successfully")
     }
 
+    // MARK: - Connection Management
+
+    func disconnect() {
+        _session?.disconnect()
+        _session = nil
+        state = .idle
+    }
+
     // MARK: - Sending Messages
 
     func send(_ message: SessionMessage, to peers: [MCPeerID], reliable: Bool) throws {

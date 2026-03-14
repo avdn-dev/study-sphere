@@ -115,6 +115,7 @@ protocol MultipeerService: AnyObject {
     var connectedPeers: [MCPeerID] { get }
     var peerConnected: AsyncStream<MCPeerID> { get }
     var peerDisconnected: AsyncStream<MCPeerID> { get }
+    func disconnect()
     
 }
 

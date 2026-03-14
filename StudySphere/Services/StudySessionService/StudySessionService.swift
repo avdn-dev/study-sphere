@@ -559,6 +559,7 @@ final class LiveStudySessionService: StudySessionService {
 
         nearbyInteractionService.stopAllSessions()
         multipeerService.joinRequestHandler = nil
+        multipeerService.disconnect()
 
         activeSession?.isActive = false
         activeSession = nil
