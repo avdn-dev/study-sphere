@@ -71,6 +71,7 @@ struct EditProfileView: View {
             }
         }
         .navigationTitle("Edit Profile")
+        .navigationBarTitleDisplayMode(.inline)
         .onAppear {
             if let name = viewModel.state.profile?.name {
                 editedName = name

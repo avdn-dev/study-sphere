@@ -30,6 +30,7 @@ struct CreateSessionView: View {
       .padding(.vertical, 24)
     }
     .navigationTitle("Create Session")
+    .navigationBarTitleDisplayMode(.inline)
   }
   
     // MARK: - Identity card
