@@ -1,4 +1,5 @@
 import Foundation
+import FamilyControls
 import VISOR
 
 @Observable
@@ -18,6 +19,7 @@ final class CreateSessionViewModel {
 
     struct State: Equatable {
         @Bound(\CreateSessionViewModel.sessionInteractor) var isScreenTimeAuthorized = false
+        @Bound(\CreateSessionViewModel.screenTimeService) var blockedApps: FamilyActivitySelection = .init()
         var sessionName = ""
         var radiusMeters: Double = 5.0
         var requireStillness = false
@@ -64,4 +66,5 @@ final class CreateSessionViewModel {
     private let router: Router<AppScene>
     private let sessionInteractor: any SessionInteractor
     private let audioService: any AudioService
+    let screenTimeService: any ScreenTimeService
 }
