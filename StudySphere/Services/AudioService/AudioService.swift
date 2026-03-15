@@ -28,6 +28,9 @@ protocol AudioService: AnyObject {
     /// Whether the background audio session is active (silent loop running)
     var isBackgroundAudioActive: Bool { get }
 
+    /// Whether the alert loop is currently playing
+    var isAlertLoopPlaying: Bool { get }
+
     /// Play audio from the given URL
     func play(url: URL, volume: Float) throws
 
@@ -39,6 +42,12 @@ protocol AudioService: AnyObject {
 
     /// Stop the background audio session
     func stopBackgroundAudio()
+
+    /// Play an alert sound in a loop (for background departure alerts)
+    func playAlertLoop(url: URL, volume: Float) throws
+
+    /// Stop the alert loop
+    func stopAlertLoop()
 }
 
 #if DEBUG

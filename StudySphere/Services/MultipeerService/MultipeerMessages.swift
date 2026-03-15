@@ -51,6 +51,8 @@ struct DistractionBroadcast: Codable, Sendable {
 struct PositionUpdate: Codable, Sendable {
     let sequence: UInt64
     let entries: [Entry]
+    let centroidX: Float
+    let centroidY: Float
 
     struct Entry: Codable, Sendable {
         let participantID: UUID

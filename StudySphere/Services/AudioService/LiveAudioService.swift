@@ -9,6 +9,7 @@ final class LiveAudioService: AudioService {
 
     private(set) var isPlaying = false
     private(set) var isBackgroundAudioActive = false
+    private(set) var isAlertLoopPlaying = false
 
     // MARK: - Lifecycle
 
@@ -70,6 +71,7 @@ final class LiveAudioService: AudioService {
         silentPlayer?.stop()
         silentPlayer = nil
         isBackgroundAudioActive = false
+        stopAlertLoop()
 
         // Only deactivate session if nothing else is playing
         if !isPlaying {
@@ -77,10 +79,33 @@ final class LiveAudioService: AudioService {
         }
     }
 
+    // MARK: - Alert Loop
+
+    func playAlertLoop(url: URL, volume: Float = 1.0) throws {
+        guard !isAlertLoopPlaying else { return }
+
+        try configureAudioSession()
+
+        let player = try AVAudioPlayer(contentsOf: url)
+        player.numberOfLoops = -1
+        player.volume = max(0.0, min(1.0, volume))
+        player.prepareToPlay()
+        player.play()
+        alertPlayer = player
+        isAlertLoopPlaying = true
+    }
+
+    func stopAlertLoop() {
+        alertPlayer?.stop()
+        alertPlayer = nil
+        isAlertLoopPlaying = false
+    }
+
     // MARK: - Private
 
     private var audioPlayer: AVAudioPlayer?
     private var silentPlayer: AVAudioPlayer?
+    private var alertPlayer: AVAudioPlayer?
     private var playbackTask: Task<Void, Never>?
 
     private func configureAudioSession() throws {
@@ -115,6 +140,9 @@ final class LiveAudioService: AudioService {
     private func resumeAfterInterruption() {
         if isBackgroundAudioActive {
             silentPlayer?.play()
+        }
+        if isAlertLoopPlaying {
+            alertPlayer?.play()
         }
         if isPlaying {
             audioPlayer?.prepareToPlay()

@@ -45,7 +45,8 @@ struct StudySphereApp: App {
             screenTimeService: screenTimeService,
             profileService: profileService,
             permissionsService: permissionService,
-            studySessionService: studySessionService)
+            studySessionService: studySessionService,
+            audioService: audioService)
         let distractionInteractor = LiveDistractionInteractor(
             motionService: motionService,
             screenTimeService: screenTimeService,
@@ -73,7 +74,8 @@ struct StudySphereApp: App {
         let createSessionViewModelFactory: CreateSessionViewModel.Factory = .routed { router in
             CreateSessionViewModel(
                 router: router,
-                sessionInteractor: sessionInteractor)
+                sessionInteractor: sessionInteractor,
+                audioService: audioService)
         }
         let activeSessionViewModelFactory: ActiveSessionViewModel.Factory = .routed { router in
             ActiveSessionViewModel(

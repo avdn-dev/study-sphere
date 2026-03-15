@@ -9,6 +9,8 @@ final class CreateSessionViewModel {
         case updateSessionName(String)
         case updateRadius(Double)
         case toggleStillness(Bool)
+        case updateAlertSound(AlertSound)
+        case previewAlertSound(AlertSound)
         case showAppSelection
         case requestScreenTimeAuth
         case createSession
@@ -19,6 +21,7 @@ final class CreateSessionViewModel {
         var sessionName = ""
         var radiusMeters: Double = 5.0
         var requireStillness = false
+        var alertSound: AlertSound = .carAlarm
         var isCreating = false
     }
 
@@ -32,6 +35,12 @@ final class CreateSessionViewModel {
             state.radiusMeters = radius
         case .toggleStillness(let value):
             state.requireStillness = value
+        case .updateAlertSound(let sound):
+            state.alertSound = sound
+        case .previewAlertSound(let sound):
+            if let url = sound.url {
+                try? audioService.play(url: url, volume: 1.0)
+            }
         case .showAppSelection:
             router.present(sheet: .appSelection)
         case .requestScreenTimeAuth:
@@ -41,7 +50,8 @@ final class CreateSessionViewModel {
             let settings = SessionSettings(
                 sessionName: state.sessionName,
                 radiusMeters: state.radiusMeters,
-                requireStillness: state.requireStillness)
+                requireStillness: state.requireStillness,
+                alertSound: state.alertSound)
             await sessionInteractor.createSession(settings: settings)
             state.isCreating = false
             router.dismissSheet()
@@ -53,4 +63,5 @@ final class CreateSessionViewModel {
 
     private let router: Router<AppScene>
     private let sessionInteractor: any SessionInteractor
+    private let audioService: any AudioService
 }

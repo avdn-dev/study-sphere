@@ -30,6 +30,7 @@ protocol StudySessionService: AnyObject {
     var participants: [Participant] { get }
     var isLeader: Bool { get }
     var sessionStartDate: Date? { get }
+    var leaderNIKey: String? { get }
 
     // Leader actions
     func hostSession(_ session: StudySession) async
@@ -96,7 +97,7 @@ final class LiveStudySessionService: StudySessionService {
     private static let maxRecentBroadcastIDs = 50
 
     /// Key used for the peer's NI session with the leader (peer side only)
-    private var leaderNIKey: String?
+    private(set) var leaderNIKey: String?
 
     /// Per-participant distraction count for the current session (for history entry)
     private var participantDistractionCounts: [UUID: Int] = [:]
@@ -680,12 +681,17 @@ final class LiveStudySessionService: StudySessionService {
             guard !isLeader else { return }
             guard update.sequence > lastPositionSequence else { return }
             lastPositionSequence = update.sequence
+            let cx = Double(update.centroidX)
+            let cy = Double(update.centroidY)
             for entry in update.entries {
                 if let index = participants.firstIndex(where: { $0.id == entry.participantID }) {
+                    let dx = Double(entry.x) - cx
+                    let dy = Double(entry.y) - cy
+                    let distFromCentroid = sqrt(dx * dx + dy * dy)
                     participants[index].position = PeerPosition(
                         x: Double(entry.x),
                         y: Double(entry.y),
-                        distanceFromCentroid: 0
+                        distanceFromCentroid: distFromCentroid
                     )
                 }
             }
@@ -758,7 +764,9 @@ final class LiveStudySessionService: StudySessionService {
         guard !entries.isEmpty else { return }
 
         positionSequence += 1
-        let message = SessionMessage.positionUpdate(PositionUpdate(sequence: positionSequence, entries: entries))
+        let centX = nearbyInteractionService.hasCentroid ? Float(nearbyInteractionService.centroidX) : 0
+        let centY = nearbyInteractionService.hasCentroid ? Float(nearbyInteractionService.centroidY) : 0
+        let message = SessionMessage.positionUpdate(PositionUpdate(sequence: positionSequence, entries: entries, centroidX: centX, centroidY: centY))
         do {
             try multipeerService.sendToAll(message, reliable: false)
         } catch {

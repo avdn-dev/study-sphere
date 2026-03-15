@@ -12,7 +12,8 @@ final class LiveSessionInteractor: SessionInteractor {
         screenTimeService: any ScreenTimeService,
         profileService: any ProfileService,
         permissionsService: any PermissionsService,
-        studySessionService: any StudySessionService)
+        studySessionService: any StudySessionService,
+        audioService: any AudioService)
     {
         self.multipeerService = multipeerService
         self.nearbyInteractionService = nearbyInteractionService
@@ -21,6 +22,7 @@ final class LiveSessionInteractor: SessionInteractor {
         self.profileService = profileService
         self.permissionsService = permissionsService
         self.studySessionService = studySessionService
+        self.audioService = audioService
         startPhaseObservation()
     }
 
@@ -84,6 +86,7 @@ final class LiveSessionInteractor: SessionInteractor {
     }
 
     func endSession() async {
+        cleanupBackgroundMonitoring()
         await studySessionService.endSession()
         stopStopwatch()
         screenTimeService.removeShields()
@@ -96,6 +99,7 @@ final class LiveSessionInteractor: SessionInteractor {
     // MARK: - Joiner
 
     func leaveSession() async {
+        cleanupBackgroundMonitoring()
         await studySessionService.leaveSession()
         stopStopwatch()
         screenTimeService.removeShields()
@@ -106,6 +110,7 @@ final class LiveSessionInteractor: SessionInteractor {
     }
 
     func leaveSessionGracefully() async {
+        cleanupBackgroundMonitoring()
         await studySessionService.leaveSessionGracefully()
         stopStopwatch()
         screenTimeService.removeShields()
@@ -130,6 +135,7 @@ final class LiveSessionInteractor: SessionInteractor {
     private let profileService: any ProfileService
     private let permissionsService: any PermissionsService
     private let studySessionService: any StudySessionService
+    private let audioService: any AudioService
 
     private var stopwatchTask: Task<Void, Never>?
     private var backgroundTaskID: UIBackgroundTaskIdentifier = .invalid
@@ -185,6 +191,13 @@ final class LiveSessionInteractor: SessionInteractor {
         stopwatchTask = nil
     }
 
+    // MARK: - Background Monitoring
+
+    private func cleanupBackgroundMonitoring() {
+        nearbyInteractionService.stopDistanceMonitoring()
+        audioService.stopAlertLoop()
+    }
+
     // MARK: - Background Task Extension
 
     func handleAppDidEnterBackground() {
@@ -194,11 +207,61 @@ final class LiveSessionInteractor: SessionInteractor {
         backgroundTaskID = UIApplication.shared.beginBackgroundTask { [weak self] in
             self?.endBackgroundTask()
         }
+
+        // Start background distance monitoring for non-leader peers in active sessions
+        if phase == .active && !studySessionService.isLeader {
+            startBackgroundDistanceMonitoring()
+        }
     }
 
     func handleAppWillEnterForeground() {
+        nearbyInteractionService.stopDistanceMonitoring()
+        audioService.stopAlertLoop()
+        audioService.stopBackgroundAudio()
+
         endBackgroundTask()
         studySessionService.handleReturnToForeground()
+    }
+
+    private func startBackgroundDistanceMonitoring() {
+        guard let leaderNIKey = studySessionService.leaderNIKey,
+              let session = studySessionService.activeSession else { return }
+
+        // Start silent background audio to keep the app alive
+        try? audioService.startBackgroundAudio()
+
+        // Snapshot baselines
+        guard let baselineNIDistance = nearbyInteractionService.peerDistances[leaderNIKey] else { return }
+
+        // Find own participant's centroid distance from the last position update
+        let ownCentroidDist: Double
+        if let profile = profileService.profile,
+           let ownParticipant = studySessionService.participants.first(where: { $0.id == profile.id }),
+           let position = ownParticipant.position {
+            ownCentroidDist = position.distanceFromCentroid
+        } else {
+            ownCentroidDist = 0
+        }
+
+        let alertSound = session.settings.alertSound
+        let radius = session.settings.radiusMeters
+        let audioSvc = audioService
+
+        nearbyInteractionService.startDistanceMonitoring(
+            for: leaderNIKey,
+            baselineNIDistance: baselineNIDistance,
+            baselineCentroidDistance: ownCentroidDist,
+            radiusMeters: radius,
+            onBoundaryCross: { isOutside in
+                if isOutside {
+                    if let url = alertSound.url {
+                        try? audioSvc.playAlertLoop(url: url, volume: 1.0)
+                    }
+                } else {
+                    audioSvc.stopAlertLoop()
+                }
+            }
+        )
     }
 
     private func endBackgroundTask() {

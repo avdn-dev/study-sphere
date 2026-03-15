@@ -5,4 +5,5 @@ struct SessionSettings: Codable, Equatable, Sendable {
     var radiusMeters: Double
     var requireStillness: Bool
     var blockedAppData: Data?
+    var alertSound: AlertSound = .carAlarm
 }
