@@ -89,42 +89,42 @@ final class LiveProfileService: ProfileService {
         ]
 
         let entries: [SessionHistoryEntry] = [
-            SessionHistoryEntry(
-                id: UUID(),
-                sessionName: "Morning Deep Work",
-                date: Date().addingTimeInterval(-3600),
-                durationSeconds: 15720,
-                participantCount: 4,
-                distractionCount: 10,
-                focusScore: 0.984,
-                participantAnalytics: peers
-            ),
-            SessionHistoryEntry(
-                id: UUID(),
-                sessionName: "Afternoon Sprint",
-                date: Date().addingTimeInterval(-86400),
-                durationSeconds: 5400,
-                participantCount: 3,
-                distractionCount: 5,
-                focusScore: 0.88,
-                participantAnalytics: [
-                    ParticipantAnalytics(id: UUID(), name: "Alex Rivera", focusScore: 0.95, focusDurationSeconds: 5100, distractionCount: 1),
-                    ParticipantAnalytics(id: UUID(), name: "Maya Chen", focusScore: 0.78, focusDurationSeconds: 4200, distractionCount: 4),
-                ]
-            ),
-            SessionHistoryEntry(
-                id: UUID(),
-                sessionName: "Evening Review",
-                date: Date().addingTimeInterval(-172800),
-                durationSeconds: 3600,
-                participantCount: 2,
-                distractionCount: 3,
-                focusScore: 0.82,
-                participantAnalytics: [
-                    ParticipantAnalytics(id: UUID(), name: "Jordan Smyth", focusScore: 0.90, focusDurationSeconds: 3240, distractionCount: 1),
-                    ParticipantAnalytics(id: UUID(), name: "Maya Chen", focusScore: 0.72, focusDurationSeconds: 2520, distractionCount: 2),
-                ]
-            ),
+//            SessionHistoryEntry(
+//                id: UUID(),
+//                sessionName: "Morning Deep Work",
+//                date: Date().addingTimeInterval(-3600),
+//                durationSeconds: 15720,
+//                participantCount: 4,
+//                distractionCount: 10,
+//                focusScore: 0.984,
+//                participantAnalytics: peers
+//            ),
+//            SessionHistoryEntry(
+//                id: UUID(),
+//                sessionName: "Afternoon Sprint",
+//                date: Date().addingTimeInterval(-86400),
+//                durationSeconds: 5400,
+//                participantCount: 3,
+//                distractionCount: 5,
+//                focusScore: 0.88,
+//                participantAnalytics: [
+//                    ParticipantAnalytics(id: UUID(), name: "Alex Rivera", focusScore: 0.95, focusDurationSeconds: 5100, distractionCount: 1),
+//                    ParticipantAnalytics(id: UUID(), name: "Maya Chen", focusScore: 0.78, focusDurationSeconds: 4200, distractionCount: 4),
+//                ]
+//            ),
+//            SessionHistoryEntry(
+//                id: UUID(),
+//                sessionName: "Evening Review",
+//                date: Date().addingTimeInterval(-172800),
+//                durationSeconds: 3600,
+//                participantCount: 2,
+//                distractionCount: 3,
+//                focusScore: 0.82,
+//                participantAnalytics: [
+//                    ParticipantAnalytics(id: UUID(), name: "Jordan Smyth", focusScore: 0.90, focusDurationSeconds: 3240, distractionCount: 1),
+//                    ParticipantAnalytics(id: UUID(), name: "Maya Chen", focusScore: 0.72, focusDurationSeconds: 2520, distractionCount: 2),
+//                ]
+//            ),
         ]
 
         for entry in entries {
@@ -173,7 +173,7 @@ final class LiveProfileService: ProfileService {
         let record = SessionHistoryEntryRecord(from: entry)
         modelContext.insert(record)
         try? modelContext.save()
-        sessionHistory.append(entry)
+        sessionHistory.insert(entry, at: 0)
     }
 
     func clearHistory() {
