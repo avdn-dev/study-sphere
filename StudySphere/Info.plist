@@ -2,12 +2,23 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<key>NSCameraUsageDescription</key>
+	<string>StudySphere uses the camera to take your profile photo.</string>
+	<key>NSNearbyInteractionUsageDescription</key>
+	<string>StudySphere uses Nearby Interaction to measure the distance between you and other participants in your study circle.</string>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>StudySphere uses the local network to discover and connect with nearby study session participants.</string>
 	<key>NSBonjourServices</key>
 	<array>
 		<string>_SSRoomHost._tcp</string>
 		<string>_SSRoomHost._udp</string>
 		<string>_SSRoomParty._tcp</string>
 		<string>_SSRoomParty._udp</string>
+	</array>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>audio</string>
+		<string>nearby-interaction</string>
 	</array>
 </dict>
 </plist>

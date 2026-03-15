@@ -63,11 +63,9 @@ final class DiscoverViewModel {
                     return
                 }
 
-                let niTokenData = nearbyInteractionService.localDiscoveryTokenData()
                 let accepted = try await studySessionService.joinSession(
                     room: room,
-                    profile: profile,
-                    niTokenData: niTokenData
+                    profile: profile
                 )
 
                 if accepted {
@@ -103,5 +101,4 @@ final class DiscoverViewModel {
     private let multipeerService: any MultipeerService
     private let studySessionService: any StudySessionService
     private let profileService: any ProfileService
-    private let nearbyInteractionService: any NearbyInteractionService
 }

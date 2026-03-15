@@ -14,6 +14,8 @@
 		548705582F66401B00F7243D /* MLXLLM in Frameworks */ = {isa = PBXBuildFile; productRef = 548705572F66401B00F7243D /* MLXLLM */; };
 		5487055A2F66401B00F7243D /* MLXLMCommon in Frameworks */ = {isa = PBXBuildFile; productRef = 548705592F66401B00F7243D /* MLXLMCommon */; };
 		96CFA1092F63F054009AFF34 /* VISOR in Frameworks */ = {isa = PBXBuildFile; productRef = 96CFA1082F63F054009AFF34 /* VISOR */; };
+		A1B2C3D40001000000000004 /* AudioService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D40001000000000001 /* AudioService.swift */; };
+		A1B2C3D40001000000000005 /* LiveAudioService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D40001000000000002 /* LiveAudioService.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -45,6 +47,8 @@
 		425D70582F650202003B0B43 /* ManagedSettings.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = ManagedSettings.framework; path = System/Library/Frameworks/ManagedSettings.framework; sourceTree = SDKROOT; };
 		425D705A2F650202003B0B43 /* ManagedSettingsUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = ManagedSettingsUI.framework; path = System/Library/Frameworks/ManagedSettingsUI.framework; sourceTree = SDKROOT; };
 		96CFA0F32F63EF8F009AFF34 /* StudySphere.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = StudySphere.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		A1B2C3D40001000000000001 /* AudioService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioService.swift; sourceTree = "<group>"; };
+		A1B2C3D40001000000000002 /* LiveAudioService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveAudioService.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -65,11 +69,6 @@
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		2D1D21032F6519FC007D1EB9 /* Audio */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			path = Audio;
-			sourceTree = "<group>";
-		};
 		425D705C2F650202003B0B43 /* ShieldConfiguration */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
@@ -124,8 +123,8 @@
 		96CFA0EA2F63EF8F009AFF34 = {
 			isa = PBXGroup;
 			children = (
-				2D1D21032F6519FC007D1EB9 /* Audio */,
 				96CFA0F52F63EF8F009AFF34 /* StudySphere */,
+				A1B2C3D40001000000000007 /* AudioService */,
 				425D705C2F650202003B0B43 /* ShieldConfiguration */,
 				425D70572F650202003B0B43 /* Frameworks */,
 				96CFA0F42F63EF8F009AFF34 /* Products */,
@@ -139,6 +138,16 @@
 				425D70562F650202003B0B43 /* ShieldConfiguration.appex */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		A1B2C3D40001000000000007 /* AudioService */ = {
+			isa = PBXGroup;
+			children = (
+				A1B2C3D40001000000000001 /* AudioService.swift */,
+				A1B2C3D40001000000000002 /* LiveAudioService.swift */,
+			);
+			name = AudioService;
+			path = StudySphere/Services/AudioService;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -181,7 +190,6 @@
 				425D70622F650202003B0B43 /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
-				2D1D21032F6519FC007D1EB9 /* Audio */,
 				96CFA0F52F63EF8F009AFF34 /* StudySphere */,
 			);
 			name = StudySphere;
@@ -267,6 +275,8 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				A1B2C3D40001000000000004 /* AudioService.swift in Sources */,
+				A1B2C3D40001000000000005 /* LiveAudioService.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -481,8 +491,10 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = StudySphere/Info.plist;
-				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "Local network access is required in order to send messages to other devices.";
+				INFOPLIST_KEY_NSCameraUsageDescription = "StudySphere uses the camera to take your profile photo.";
+				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "StudySphere uses the local network to discover and connect with nearby study session participants.";
 				INFOPLIST_KEY_NSMotionUsageDescription = "Used to detect when the device is stationary during a study session.";
+				INFOPLIST_KEY_NSNearbyInteractionUsageDescription = "StudySphere uses Nearby Interaction to measure the distance between you and other participants in your study circle.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -520,8 +532,10 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = StudySphere/Info.plist;
-				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "Local network access is required in order to send messages to other devices.";
+				INFOPLIST_KEY_NSCameraUsageDescription = "StudySphere uses the camera to take your profile photo.";
+				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "StudySphere uses the local network to discover and connect with nearby study session participants.";
 				INFOPLIST_KEY_NSMotionUsageDescription = "Used to detect when the device is stationary during a study session.";
+				INFOPLIST_KEY_NSNearbyInteractionUsageDescription = "StudySphere uses Nearby Interaction to measure the distance between you and other participants in your study circle.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;

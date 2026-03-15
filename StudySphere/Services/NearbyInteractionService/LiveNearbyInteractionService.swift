@@ -16,21 +16,20 @@ final class LiveNearbyInteractionService: NearbyInteractionService {
     private let logger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "StudySphere", category: "NearbyInteraction")
     private var peerSessions: [String: NISession] = [:]
     private var peerDelegates: [String: SessionDelegate] = [:]
-    private let tokenSession = NISession()
-    private var cachedTokenData: Data?
     private var centroidX: Double = 0
     private var centroidY: Double = 0
     private var hasCentroid = false
 
     // MARK: - Sessions
 
-    func startSession(with peerID: String, discoveryTokenData: Data) {
-        guard let peerToken = try? NSKeyedUnarchiver.unarchivedObject(
-            ofClass: NIDiscoveryToken.self,
-            from: discoveryTokenData
-        ) else {
-            logger.error("Failed to unarchive discovery token for peer \(peerID)")
-            return
+    func prepareSession(for peerID: String) -> Data? {
+        // If a session already exists for this peer, return its token
+        if let existing = peerSessions[peerID] {
+            guard let token = existing.discoveryToken else {
+                logger.warning("Existing session for \(peerID) has no discovery token")
+                return nil
+            }
+            return try? NSKeyedArchiver.archivedData(withRootObject: token, requiringSecureCoding: true)
         }
 
         let session = NISession()
@@ -44,9 +43,31 @@ final class LiveNearbyInteractionService: NearbyInteractionService {
         peerSessions[peerID] = session
         peerDelegates[peerID] = delegate
 
+        guard let token = session.discoveryToken else {
+            logger.warning("New NISession for \(peerID) has no discovery token")
+            return nil
+        }
+        let data = try? NSKeyedArchiver.archivedData(withRootObject: token, requiringSecureCoding: true)
+        logger.info("Prepared NI session for peer \(peerID)")
+        return data
+    }
+
+    func runSession(for peerID: String, peerDiscoveryTokenData: Data) {
+        guard let session = peerSessions[peerID] else {
+            logger.error("No prepared session for peer \(peerID) — call prepareSession first")
+            return
+        }
+        guard let peerToken = try? NSKeyedUnarchiver.unarchivedObject(
+            ofClass: NIDiscoveryToken.self,
+            from: peerDiscoveryTokenData
+        ) else {
+            logger.error("Failed to unarchive discovery token for peer \(peerID)")
+            return
+        }
+
         let config = NINearbyPeerConfiguration(peerToken: peerToken)
         session.run(config)
-        logger.info("Started NI session with peer \(peerID)")
+        logger.info("Running NI session with peer \(peerID)")
     }
 
     func stopSession(for peerID: String) {
@@ -68,17 +89,6 @@ final class LiveNearbyInteractionService: NearbyInteractionService {
         peerDirections.removeAll()
         estimatedPositions.removeAll()
         hasCentroid = false
-    }
-
-    func localDiscoveryTokenData() -> Data? {
-        if let cachedTokenData { return cachedTokenData }
-        guard let token = tokenSession.discoveryToken else {
-            logger.warning("NISession discovery token not yet available")
-            return nil
-        }
-        let data = try? NSKeyedArchiver.archivedData(withRootObject: token, requiringSecureCoding: true)
-        cachedTokenData = data
-        return data
     }
 
     // MARK: - Position
@@ -106,6 +116,9 @@ final class LiveNearbyInteractionService: NearbyInteractionService {
     private func handleUpdate(peerID: String, result: NINearbyObject) {
         if let distance = result.distance {
             peerDistances[peerID] = distance
+            logger.debug("NI distance update — peer: \(peerID), distance: \(String(format: "%.2f", distance))m")
+        } else {
+            logger.debug("NI update — peer: \(peerID), distance: nil")
         }
         if let direction = result.direction {
             peerDirections[peerID] = direction
@@ -121,7 +134,10 @@ final class LiveNearbyInteractionService: NearbyInteractionService {
                     distFromCentroid = 0
                 }
                 estimatedPositions[peerID] = PeerPosition(x: x, y: y, distanceFromCentroid: distFromCentroid)
+                logger.debug("NI position update — peer: \(peerID), x: \(String(format: "%.2f", x)), y: \(String(format: "%.2f", y)), centroidDist: \(String(format: "%.2f", distFromCentroid))")
             }
+        } else {
+            logger.debug("NI update — peer: \(peerID), direction: nil")
         }
     }
 
@@ -139,6 +155,7 @@ private final class SessionDelegate: NSObject, NISessionDelegate, Sendable {
     let peerID: String
     let onUpdate: @Sendable (String, NINearbyObject) -> Void
     let onRemoved: @Sendable (String) -> Void
+    private let logger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "StudySphere", category: "NearbyInteraction")
 
     init(peerID: String, onUpdate: @escaping @Sendable (String, NINearbyObject) -> Void, onRemoved: @escaping @Sendable (String) -> Void) {
         self.peerID = peerID
@@ -147,11 +164,25 @@ private final class SessionDelegate: NSObject, NISessionDelegate, Sendable {
     }
 
     func session(_ session: NISession, didUpdate nearbyObjects: [NINearbyObject]) {
+        logger.info("NI didUpdate — peer: \(self.peerID), objectCount: \(nearbyObjects.count)")
         guard let nearest = nearbyObjects.first else { return }
         onUpdate(peerID, nearest)
     }
 
     func session(_ session: NISession, didRemove nearbyObjects: [NINearbyObject], reason: NINearbyObject.RemovalReason) {
+        logger.info("NI didRemove — peer: \(self.peerID), reason: \(String(describing: reason))")
         onRemoved(peerID)
+    }
+
+    func session(_ session: NISession, didInvalidateWith error: Error) {
+        logger.error("NI session invalidated — peer: \(self.peerID), error: \(error.localizedDescription)")
+    }
+
+    func sessionSuspensionEnded(_ session: NISession) {
+        logger.info("NI session suspension ended — peer: \(self.peerID)")
+    }
+
+    func sessionWasSuspended(_ session: NISession) {
+        logger.warning("NI session suspended — peer: \(self.peerID)")
     }
 }

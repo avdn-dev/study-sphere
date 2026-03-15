@@ -96,7 +96,7 @@ struct SessionAnalyticsView: View {
                 .resizable()
                 .scaledToFill()
         } else {
-            Image(systemName: "person.circle.fill")
+            Image(systemName: "person.crop.circle.fill")
                 .resizable()
                 .scaledToFit()
                 .foregroundStyle(.secondary)
@@ -212,7 +212,7 @@ struct SessionAnalyticsView: View {
                         .font(.subheadline.bold())
                         .frame(maxWidth: .infinity)
                 }
-                .buttonStyle(.borderedProminent)
+                .glassButton()
                 .controlSize(.regular)
             }
             .padding(16)
@@ -254,7 +254,7 @@ private struct PeerContributionRow: View {
                 .fill(.fill.tertiary)
                 .frame(width: 40, height: 40)
                 .overlay {
-                    Image(systemName: "person.fill")
+                    Image(systemName: "person.crop.circle.fill")
                         .foregroundStyle(.secondary)
                 }
 

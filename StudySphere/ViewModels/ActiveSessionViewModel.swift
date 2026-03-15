@@ -9,13 +9,15 @@ final class ActiveSessionViewModel {
         case startSession
         case endSession
         case leaveSession
+        case leaveSessionGracefully
     }
 
     struct State: Equatable {
         @Bound(\ActiveSessionViewModel.sessionInteractor) var activeSession: StudySession?
         @Bound(\ActiveSessionViewModel.sessionInteractor) var participants: [Participant] = []
         @Bound(\ActiveSessionViewModel.sessionInteractor) var isHost = false
-        @Bound(\ActiveSessionViewModel.sessionInteractor) var remainingTime: TimeInterval?
+        @Bound(\ActiveSessionViewModel.sessionInteractor) var phase: StudySessionPhase = .idle
+        @Bound(\ActiveSessionViewModel.sessionInteractor) var elapsedTime: TimeInterval?
         @Bound(\ActiveSessionViewModel.sessionInteractor) var isCalibrated = false
         @Bound(\ActiveSessionViewModel.distractionInteractor) var participantStatuses: [UUID: ParticipantStatus] = [:]
         @Bound(\ActiveSessionViewModel.distractionInteractor) var isLocalDeviceDistracted = false
@@ -24,10 +26,15 @@ final class ActiveSessionViewModel {
 
     var state = State()
 
-    var formattedRemainingTime: String? {
-        guard let remaining = state.remainingTime else { return nil }
-        let minutes = Int(remaining) / 60
-        let seconds = Int(remaining) % 60
+    var formattedElapsedTime: String? {
+        guard let elapsed = state.elapsedTime else { return nil }
+        let totalSeconds = Int(elapsed)
+        let hours = totalSeconds / 3600
+        let minutes = (totalSeconds % 3600) / 60
+        let seconds = totalSeconds % 60
+        if hours > 0 {
+            return String(format: "%d:%02d:%02d", hours, minutes, seconds)
+        }
         return String(format: "%d:%02d", minutes, seconds)
     }
 
@@ -39,6 +46,8 @@ final class ActiveSessionViewModel {
             await sessionInteractor.endSession()
         case .leaveSession:
             await sessionInteractor.leaveSession()
+        case .leaveSessionGracefully:
+            await sessionInteractor.leaveSessionGracefully()
         }
     }
 

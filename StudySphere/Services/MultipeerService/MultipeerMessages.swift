@@ -14,18 +14,21 @@ enum SessionMessage: Codable, Sendable {
     case sessionEnded(SessionEnded)
     case distractionBroadcast(DistractionBroadcast)
     case positionUpdate(PositionUpdate)
+    case leaderLeaving(LeaderLeaving)
 }
 
 // MARK: - Payload Structs
 
 struct JoinResponse: Codable, Sendable {
     let accepted: Bool
+    let leaderParticipantID: UUID?
     let leaderDiscoveryTokenData: Data?
     let session: StudySession?
     let participants: [Participant]?
 }
 
 struct SessionStateUpdate: Codable, Sendable {
+    let version: UInt64
     let participants: [Participant]
 }
 
@@ -39,18 +42,23 @@ struct SessionEnded: Codable, Sendable {
 }
 
 struct DistractionBroadcast: Codable, Sendable {
+    let id: UUID
     let participantID: UUID
     let status: ParticipantStatus
     let source: DistractionEvent.Source?
 }
 
 struct PositionUpdate: Codable, Sendable {
+    let sequence: UInt64
     let entries: [Entry]
 
     struct Entry: Codable, Sendable {
         let participantID: UUID
         let x: Float
         let y: Float
-        let status: ParticipantStatus
     }
+}
+
+struct LeaderLeaving: Codable, Sendable {
+    let participantID: UUID
 }

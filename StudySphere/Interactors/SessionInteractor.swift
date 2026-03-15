@@ -7,7 +7,9 @@ protocol SessionInteractor: AnyObject {
     var activeSession: StudySession? { get }
     var participants: [Participant] { get }
     var isHost: Bool { get }
-    var remainingTime: TimeInterval? { get }
+  @StubbableDefault(StudySessionPhase.idle)
+    var phase: StudySessionPhase { get }
+    var elapsedTime: TimeInterval? { get }
     var isCalibrated: Bool { get }
     var isScreenTimeAuthorized: Bool { get }
 
@@ -16,7 +18,10 @@ protocol SessionInteractor: AnyObject {
     func endSession() async
 //    func joinSession(host: DiscoveredSession) async
     func leaveSession() async
+    func leaveSessionGracefully() async
     func requestScreenTimeAuthorization() async throws
+    func handleAppDidEnterBackground()
+    func handleAppWillEnterForeground()
 }
 
 #if DEBUG

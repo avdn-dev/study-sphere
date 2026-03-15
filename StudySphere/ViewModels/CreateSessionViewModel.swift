@@ -8,7 +8,6 @@ final class CreateSessionViewModel {
     enum Action {
         case updateSessionName(String)
         case updateRadius(Double)
-        case updateDuration(TimeInterval)
         case toggleStillness(Bool)
         case showAppSelection
         case requestScreenTimeAuth
@@ -19,7 +18,6 @@ final class CreateSessionViewModel {
         @Bound(\CreateSessionViewModel.sessionInteractor) var isScreenTimeAuthorized = false
         var sessionName = ""
         var radiusMeters: Double = 5.0
-        var durationSeconds: TimeInterval = 1800
         var requireStillness = false
         var isCreating = false
     }
@@ -32,8 +30,6 @@ final class CreateSessionViewModel {
             state.sessionName = name
         case .updateRadius(let radius):
             state.radiusMeters = radius
-        case .updateDuration(let duration):
-            state.durationSeconds = duration
         case .toggleStillness(let value):
             state.requireStillness = value
         case .showAppSelection:
@@ -45,7 +41,6 @@ final class CreateSessionViewModel {
             let settings = SessionSettings(
                 sessionName: state.sessionName,
                 radiusMeters: state.radiusMeters,
-                durationSeconds: state.durationSeconds,
                 requireStillness: state.requireStillness)
             await sessionInteractor.createSession(settings: settings)
             state.isCreating = false

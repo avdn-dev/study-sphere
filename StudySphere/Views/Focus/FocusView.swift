@@ -4,6 +4,7 @@ import VISOR
 struct FocusView: View {
 
     @Environment(Router<AppScene>.self) private var router
+    @Environment(LiveProfileService.self) private var profileService
 
     var body: some View {
         VStack(spacing: 32) {
@@ -12,7 +13,8 @@ struct FocusView: View {
             VStack(spacing: 16) {
                 Image(systemName: "brain.head.profile")
                     .font(.system(size: 64))
-                    .foregroundStyle(.white.opacity(0.8))
+                    .foregroundStyle(.white)
+                    .symbolEffect(.breathe.pulse.byLayer, options: .repeat(.continuous))
 
                 Text("Ready to Focus?")
                     .font(.title)
@@ -33,7 +35,7 @@ struct FocusView: View {
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 14)
                 }
-                .buttonStyle(.borderedProminent)
+                .glassButton()
                 .tint(.blue)
 
                 HStack {
@@ -56,7 +58,7 @@ struct FocusView: View {
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 14)
                 }
-                .buttonStyle(.borderedProminent)
+                .glassButton()
                 .tint(.green)
             }
             .padding(.horizontal, 32)
@@ -68,9 +70,23 @@ struct FocusView: View {
         .navigationTitle("Focus")
         .toolbarTitleDisplayMode(.inlineLarge)
         .toolbar {
-            Button("Profile", systemImage: "person.crop.circle.fill") {
-                router.present(sheet: .profile)
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    router.present(sheet: .profile)
+                } label: {
+                    if let image = profileService.profileImage {
+                        Image(uiImage: image)
+                            .resizable()
+                            .scaledToFill()
+                            .frame(width: 30, height: 30)
+                            .clipShape(Circle())
+                    } else {
+                        Image(systemName: "person.crop.circle.fill")
+                    }
+                }
+                .accessibilityLabel("Profile")
             }
+            .hideGlassBackground()
         }
     }
 }

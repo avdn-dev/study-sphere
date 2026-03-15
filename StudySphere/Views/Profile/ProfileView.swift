@@ -56,10 +56,19 @@ struct ProfileView: View {
                 Button("Clear History", role: .destructive) {
                   showClearConfirmation = true
                 }
+                .glassButton()
+                .confirmationDialog("Clear all session history?", isPresented: $showClearConfirmation, titleVisibility: .visible) {
+                  Button("Clear History", role: .destructive) {
+                    Task { await viewModel.handle(.clearHistory) }
+                  }
+                } message: {
+                    Text("This action cannot be undone.")
+                }
               }
             }
         }
         .navigationTitle("Profile")
+        .navigationBarTitleDisplayMode(.inline)
         .toolbar {
           ToolbarItem(placement: .topBarTrailing) {
             Button {
@@ -68,13 +77,6 @@ struct ProfileView: View {
               Text("Edit")
             }
           }
-        }
-        .confirmationDialog("Clear all session history?", isPresented: $showClearConfirmation, titleVisibility: .visible) {
-          Button("Clear History", role: .destructive) {
-            Task { await viewModel.handle(.clearHistory) }
-          }
-        } message: {
-            Text("This action cannot be undone.")
         }
         .navigationDestination(for: ProfileRoute.self) { route in
           if route == .edit {
@@ -96,7 +98,7 @@ struct ProfileView: View {
           .frame(width: 80, height: 80)
           .clipShape(Circle())
       } else {
-        Image(systemName: "person.circle.fill")
+        Image(systemName: "person.crop.circle.fill")
           .font(.system(size: 80))
           .foregroundStyle(.secondary)
       }
