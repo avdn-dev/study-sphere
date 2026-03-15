@@ -85,6 +85,7 @@ final class LiveAudioService: AudioService {
         guard !isAlertLoopPlaying else { return }
 
         try configureAudioSession()
+        try AVAudioSession.sharedInstance().overrideOutputAudioPort(.speaker)
 
         let player = try AVAudioPlayer(contentsOf: url)
         player.numberOfLoops = -1
@@ -99,6 +100,7 @@ final class LiveAudioService: AudioService {
         alertPlayer?.stop()
         alertPlayer = nil
         isAlertLoopPlaying = false
+        try? AVAudioSession.sharedInstance().overrideOutputAudioPort(.none)
     }
 
     // MARK: - Private
