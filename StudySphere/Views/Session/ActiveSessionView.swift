@@ -60,16 +60,16 @@ struct ActiveSessionView: View {
             }
         }
         .toolbar {
-          if viewModel.state.activeSession?.isActive == false {
             ToolbarItem(placement: .topBarLeading) {
-              Button("End session", systemImage: "xmark") {
-                Task {
-                  await viewModel.handle(.endSession)
-                  dismiss()
+                Button("End session", systemImage: "xmark") {
+                    Task {
+                        await viewModel.handle(.endSession)
+                        dismiss()
+                    }
                 }
-              }
+                .opacity(viewModel.state.activeSession?.isActive == true ? 0 : 1)
+                .disabled(viewModel.state.activeSession?.isActive == true)
             }
-          }
         }
     }
 
