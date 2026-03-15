@@ -38,6 +38,8 @@ struct PhotoCropView: View {
         .gesture(dragGesture)
         .gesture(magnifyGesture)
         .onAppear { cropDiameter = diameter }
+        .onChange(of: geo.size.width) { _, _ in cropDiameter = diameter }
+        .onChange(of: geo.size.height) { _, _ in cropDiameter = diameter }
       }
       .navigationTitle("Crop Photo")
       .navigationBarTitleDisplayMode(.inline)
@@ -87,18 +89,24 @@ struct PhotoCropView: View {
 
   private func performCrop() -> UIImage {
     let normalized = normalizeOrientation(image)
-    let imgSize = normalized.size
-    let aspect = imgSize.width / imgSize.height
+    guard let cgImage = normalized.cgImage else { return normalized }
 
-    // Base rendered size (scaledToFill in cropDiameter x cropDiameter)
+    // Use pixel dimensions for crop; UIImage.size is in points and would mis-scale on Retina
+    let pxW = CGFloat(cgImage.width)
+    let pxH = CGFloat(cgImage.height)
+    let aspect = pxW / pxH
+
+    let diameter = max(cropDiameter, 1)
+
+    // Base rendered size (scaledToFill in diameter x diameter)
     let renderedW: CGFloat
     let renderedH: CGFloat
     if aspect >= 1 {
-      renderedW = cropDiameter * aspect
-      renderedH = cropDiameter
+      renderedW = diameter * aspect
+      renderedH = diameter
     } else {
-      renderedW = cropDiameter
-      renderedH = cropDiameter / aspect
+      renderedW = diameter
+      renderedH = diameter / aspect
     }
 
     // After user scale
@@ -110,25 +118,25 @@ struct PhotoCropView: View {
     let cropCenterY = displayH / 2 - offset.height
 
     // Crop rect in display coordinates
-    let cropX = cropCenterX - cropDiameter / 2
-    let cropY = cropCenterY - cropDiameter / 2
+    let cropX = cropCenterX - diameter / 2
+    let cropY = cropCenterY - diameter / 2
 
-    // Convert to pixel coordinates
-    let pxPerPtX = imgSize.width / displayW
-    let pxPerPtY = imgSize.height / displayH
+    // Convert display (point) coordinates to pixel coordinates
+    let pxPerPtX = pxW / displayW
+    let pxPerPtY = pxH / displayH
 
     var pixelRect = CGRect(
       x: cropX * pxPerPtX,
       y: cropY * pxPerPtY,
-      width: cropDiameter * pxPerPtX,
-      height: cropDiameter * pxPerPtY
-    )
+      width: diameter * pxPerPtX,
+      height: diameter * pxPerPtY
+    ).integral
 
-    // Clamp to image bounds
-    pixelRect = pixelRect.intersection(CGRect(origin: .zero, size: imgSize))
+    // Clamp to image bounds (in pixels)
+    pixelRect = pixelRect.intersection(CGRect(origin: .zero, size: CGSize(width: pxW, height: pxH)))
 
     guard !pixelRect.isEmpty,
-          let cgImage = normalized.cgImage?.cropping(to: pixelRect)
+          let croppedCG = cgImage.cropping(to: pixelRect)
     else {
       return normalized
     }
@@ -137,7 +145,7 @@ struct PhotoCropView: View {
     let outputSize: CGFloat = 400
     let renderer = UIGraphicsImageRenderer(size: CGSize(width: outputSize, height: outputSize))
     return renderer.image { _ in
-      UIImage(cgImage: cgImage).draw(
+      UIImage(cgImage: croppedCG).draw(
         in: CGRect(origin: .zero, size: CGSize(width: outputSize, height: outputSize)))
     }
   }

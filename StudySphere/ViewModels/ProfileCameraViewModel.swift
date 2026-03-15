@@ -386,7 +386,7 @@ extension ProfileCameraViewModel: AVCapturePhotoCaptureDelegate {
   nonisolated func photoOutput(
     _: AVCapturePhotoOutput,
     didFinishProcessingPhoto photo: AVCapturePhoto,
-    error: Error?)
+    error: (any Error)?)
   {
     let errorDescription = error?.localizedDescription
     let photoData = photo.fileDataRepresentation()
