@@ -42,11 +42,17 @@ final class ActiveSessionViewModel {
         switch action {
         case .startSession:
             await sessionInteractor.startSession()
+            if let settings = sessionInteractor.activeSession?.settings {
+                distractionInteractor.startMonitoring(settings: settings)
+            }
         case .endSession:
+            distractionInteractor.stopMonitoring()
             await sessionInteractor.endSession()
         case .leaveSession:
+            distractionInteractor.stopMonitoring()
             await sessionInteractor.leaveSession()
         case .leaveSessionGracefully:
+            distractionInteractor.stopMonitoring()
             await sessionInteractor.leaveSessionGracefully()
         }
     }

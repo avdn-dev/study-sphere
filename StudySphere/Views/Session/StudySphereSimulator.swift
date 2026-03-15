@@ -1,46 +1,31 @@
 import Foundation
 import QuartzCore
 
+/// Pure movement generator — takes participant keys and produces
+/// organic position updates. Does NOT own participants or statuses.
 @Observable
 final class StudySphereSimulator {
 
-    private(set) var participants: [Participant] = []
+    /// The only output: position updates keyed by base64-encoded peerIDData.
     private(set) var positions: [String: PeerPosition] = [:]
-    private(set) var statuses: [UUID: ParticipantStatus] = [:]
 
     private var displayLink: CADisplayLink?
     private let startTime = CFAbsoluteTimeGetCurrent()
 
-    // Fixed IDs for stable identity
-    private let ids: [UUID] = (0..<5).map { _ in UUID() }
+    private var participantKeys: [String] = []
+    private var baseAngles: [Double] = []
+    private let baseRadius: Double = 2.5 // meters from center
 
-    private let names = ["Alice", "Bob", "Carol", "Dave", "Eve"]
-    private let avatars = [
-        "person.crop.circle.fill",
-        "figure.walk.circle.fill",
-        "star.circle.fill",
-        "heart.circle.fill",
-        "bolt.circle.fill"
-    ]
+    // MARK: - Public API
 
-    // Base angles for circular arrangement (radians)
-    private let baseAngles: [Double] = (0..<5).map { Double($0) * (.pi * 2.0 / 5.0) }
-    private let baseRadius: Double = 2.5 // meters from center (~50% of default 5m radius)
-
-    init() {
-        // Build initial participants
-        for i in 0..<5 {
-            let peerData = ids[i].uuidString.data(using: .utf8)!
-            participants.append(Participant(
-                id: ids[i],
-                peerIDData: peerData,
-                name: names[i],
-                avatarSystemName: avatars[i],
-                status: .focused
-            ))
-            statuses[ids[i]] = .focused
+    /// Call whenever the participant list changes so movement
+    /// is generated for the correct set of keys.
+    func updateParticipants(_ participants: [Participant]) {
+        participantKeys = participants.map { $0.peerIDData.base64EncodedString() }
+        let count = max(participantKeys.count, 1)
+        baseAngles = (0..<participantKeys.count).map {
+            Double($0) * (.pi * 2.0 / Double(count))
         }
-        updatePositions(time: 0)
     }
 
     func start() {
@@ -56,39 +41,26 @@ final class StudySphereSimulator {
         displayLink = nil
     }
 
+    // MARK: - Display link
+
     @objc private func tick() {
         let t = CFAbsoluteTimeGetCurrent() - startTime
         updatePositions(time: t)
-        updateStatuses(time: t)
     }
 
+    // MARK: - Movement generation
+
     private func updatePositions(time t: Double) {
-        for i in 0..<5 {
-            let key = participants[i].peerIDData.base64EncodedString()
+        for i in participantKeys.indices {
+            let key = participantKeys[i]
 
             // Slow orbit + two overlapping sinusoidal drifts for organic noise
             let angle = baseAngles[i] + t * 0.05
             let drift1 = sin(t * 0.3 + Double(i) * 1.7) * 0.4
             let drift2 = sin(t * 0.17 + Double(i) * 2.3) * 0.25
+            let radius = baseRadius + drift1 + drift2
 
-            var radius = baseRadius + drift1 + drift2
-
-            // Dave (index 3) periodically drifts far away on a ~42s cycle
-            if i == 3 {
-                let davePhase = (sin(t * .pi * 2.0 / 42.0) + 1.0) / 2.0 // 0…1
-                let daveExtra = davePhase * 3.5 // up to 3.5m extra → ~6m, beyond 5m radius
-                radius += daveExtra
-            }
-
-            // Eve (index 4) fully leaves the circle on a ~55s cycle
-            // When she's out, everyone's group focus drops → blob shifts red
-            if i == 4 {
-                let evePhase = (sin(t * .pi * 2.0 / 55.0) + 1.0) / 2.0
-                let eveExtra = evePhase * 4.5 // up to 4.5m extra → ~7m, well outside radius
-                radius += eveExtra
-            }
-
-            // Micro-drift: high-frequency, low-amplitude jitter so nodes never sit still
+            // Micro-drift: high-frequency, low-amplitude jitter
             let microX = sin(t * 1.3 + Double(i) * 4.1) * 0.08
                        + sin(t * 2.7 + Double(i) * 1.9) * 0.04
             let microY = sin(t * 1.1 + Double(i) * 3.3) * 0.08
@@ -97,35 +69,7 @@ final class StudySphereSimulator {
             let x = cos(angle) * radius + microX
             let y = sin(angle) * radius + microY
 
-            let pos = PeerPosition(x: x, y: y, distanceFromCentroid: radius)
-            positions[key] = pos
-            participants[i].position = pos
-        }
-    }
-
-    private func updateStatuses(time t: Double) {
-        for i in 0..<5 {
-            var status: ParticipantStatus = .focused
-
-            // Carol (index 2) cycles distracted on a ~20s cycle
-            if i == 2 {
-                let carolPhase = sin(t * .pi * 2.0 / 20.0)
-                status = carolPhase > 0.3 ? .distracted : .focused
-            }
-
-            // Dave (index 3) and Eve (index 4) show outsideCircle when beyond radius
-            if i == 3 || i == 4 {
-                if let pos = positions[participants[i].peerIDData.base64EncodedString()] {
-                    if pos.distanceFromCentroid > 5.0 {
-                        status = .outsideCircle
-                    } else if pos.distanceFromCentroid > 4.0 {
-                        status = .distracted
-                    }
-                }
-            }
-
-            statuses[ids[i]] = status
-            participants[i].status = status
+            positions[key] = PeerPosition(x: x, y: y, distanceFromCentroid: radius)
         }
     }
 }

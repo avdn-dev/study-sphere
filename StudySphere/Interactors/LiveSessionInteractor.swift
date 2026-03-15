@@ -12,7 +12,8 @@ final class LiveSessionInteractor: SessionInteractor {
         screenTimeService: any ScreenTimeService,
         profileService: any ProfileService,
         permissionsService: any PermissionsService,
-        studySessionService: any StudySessionService)
+        studySessionService: any StudySessionService,
+        roastService: LiveRoastService)
     {
         self.multipeerService = multipeerService
         self.nearbyInteractionService = nearbyInteractionService
@@ -21,6 +22,7 @@ final class LiveSessionInteractor: SessionInteractor {
         self.profileService = profileService
         self.permissionsService = permissionsService
         self.studySessionService = studySessionService
+        self.roastService = roastService
         startPhaseObservation()
     }
 
@@ -76,6 +78,7 @@ final class LiveSessionInteractor: SessionInteractor {
 
         // Apply screen time shields if configured
         if session.settings.blockedAppData != nil {
+            await roastService.generateAndPersistRoasts(roastType: .cooked)
             screenTimeService.applyShields()
         }
 
@@ -130,6 +133,7 @@ final class LiveSessionInteractor: SessionInteractor {
     private let profileService: any ProfileService
     private let permissionsService: any PermissionsService
     private let studySessionService: any StudySessionService
+    private let roastService: LiveRoastService
 
     private var stopwatchTask: Task<Void, Never>?
     private var backgroundTaskID: UIBackgroundTaskIdentifier = .invalid

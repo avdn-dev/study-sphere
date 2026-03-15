@@ -42,15 +42,18 @@ struct TestView: View {
 
 @Observable
 final class LiveRoastService {
+    static let appGroupID = "group.studio.cgc.StudySphere.sharedData"
+    static let roastsKey = "shield.roasts"
+
     static let systemPrompt = """
-        You are a toxic roasting assistant. 
-        Generate short, harsh roasts. 
-        You must separate each roast with the newline character. 
-        Do not write any other text, introductions, or explanations. 
+        You are a toxic roasting assistant.
+        Generate short, harsh roasts.
+        You must separate each roast with the newline character.
+        Do not write any other text, introductions, or explanations.
         Only output the roasts separated by a newline.
         """
     //    private var bot: LLM?
-    
+
     var isBrainRot: Bool = false
     var isBotReady: Bool = false
     var isPerformant: Bool = false
@@ -73,21 +76,21 @@ final class LiveRoastService {
     }
     
     public init() {
-        let canUseModel = ProcessInfo.processInfo.isDeviceCertified(for: .iPhonePerformanceGaming)
-        print("canUseModel: \(canUseModel)")
-        if canUseModel {
-            Task {
-                do {
-                    MLX.Memory.cacheLimit = 1
-                    let model = try await loadModel(id: "mlx-community/Qwen3-4B-4bit")
-                    self.session = ChatSession(model)
-                    self.isBotReady = true
-                } catch {
-                    print("ERROR LOADING LLM ", error)
-                }
-            }
-        }
-        self.isPerformant = canUseModel
+//        let canUseModel = ProcessInfo.processInfo.isDeviceCertified(for: .iPhonePerformanceGaming)
+//        print("canUseModel: \(canUseModel)")
+//        if canUseModel {
+//            Task {
+//                do {
+//                    MLX.Memory.cacheLimit = 1
+//                    let model = try await loadModel(id: "mlx-community/Qwen3-4B-4bit")
+//                    self.session = ChatSession(model)
+//                    self.isBotReady = true
+//                } catch {
+//                    print("ERROR LOADING LLM ", error)
+//                }
+//            }
+//        }
+//        self.isPerformant = canUseModel
     }
     
     public func generateRoasts(roastType: RoastType) async -> [String] {
@@ -132,6 +135,15 @@ final class LiveRoastService {
         }
     }
     
+    /// Generate roasts and persist them to the shared app group so the
+    /// ShieldConfigurationExtension can display them on blocked-app screens.
+    func generateAndPersistRoasts(roastType: RoastType) async {
+        let roasts = await generateRoasts(roastType: roastType)
+        guard !roasts.isEmpty else { return }
+        let defaults = UserDefaults(suiteName: Self.appGroupID)
+        defaults?.set(roasts, forKey: Self.roastsKey)
+    }
+
     private func _getPreMadeRoast(roastType: RoastType) async -> [String] {
         assert(!self.isPerformant, "Prefer to use the LLM-based generation function instead if device is capable.")
         switch roastType {

@@ -6,9 +6,16 @@ struct ActiveSessionView: View {
   @Environment(\.dismiss) private var dismiss
 
     @State private var isPulsing = false
+    @State private var simulator = StudySphereSimulator()
 
     private var activeRadiusMeters: Double {
         viewModel.state.activeSession?.settings.radiusMeters ?? 5.0
+    }
+
+    /// Use real NI positions when available, otherwise fall back to simulator.
+    private var activePositions: [String: PeerPosition] {
+        let real = viewModel.state.estimatedPositions
+        return real.isEmpty ? simulator.positions : real
     }
 
     var content: some View {
@@ -19,7 +26,7 @@ struct ActiveSessionView: View {
             // Full-screen Metal view — blob never clips
             MetalMetaballView(
                 participants: viewModel.state.participants,
-                positions: viewModel.state.estimatedPositions,
+                positions: activePositions,
                 statuses: viewModel.state.participantStatuses,
                 radiusMeters: activeRadiusMeters
             )
@@ -52,6 +59,16 @@ struct ActiveSessionView: View {
                 }
             }
             .padding(.bottom)
+        }
+        .onAppear {
+            simulator.updateParticipants(viewModel.state.participants)
+            simulator.start()
+        }
+        .onDisappear {
+            simulator.stop()
+        }
+        .onChange(of: viewModel.state.participants) { _, newParticipants in
+            simulator.updateParticipants(newParticipants)
         }
         .onChange(of: viewModel.state.phase) { _, newPhase in
             if newPhase == .ended {
@@ -405,7 +422,7 @@ struct ActiveSessionView: View {
 
         let worldX: Double
         let worldY: Double
-        if let pos = viewModel.state.estimatedPositions[key] {
+        if let pos = activePositions[key] {
             worldX = pos.x
             worldY = pos.y
         } else if let pos = participant.position {

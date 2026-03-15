@@ -38,6 +38,7 @@ struct StudySphereApp: App {
             nearbyInteractionService: nearbyInteractionService,
             profileService: profileService
         )
+        let roastService = LiveRoastService()
         let sessionInteractor = LiveSessionInteractor(
             multipeerService: multipeerService,
             nearbyInteractionService: nearbyInteractionService,
@@ -45,9 +46,11 @@ struct StudySphereApp: App {
             screenTimeService: screenTimeService,
             profileService: profileService,
             permissionsService: permissionService,
-            studySessionService: studySessionService)
+            studySessionService: studySessionService,
+            roastService: roastService)
         let distractionInteractor = LiveDistractionInteractor(
             motionService: motionService,
+            audioService: audioService,
             screenTimeService: screenTimeService,
             nearbyInteractionService: nearbyInteractionService,
             profileService: profileService)
