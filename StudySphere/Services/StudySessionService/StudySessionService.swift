@@ -214,8 +214,7 @@ final class LiveStudySessionService: StudySessionService {
         if let session = activeSession {
             let startDate = sessionStartDate ?? endDate
             let durationSeconds = max(0, endDate.timeIntervalSince(startDate))
-            let totalDistractions = 
-          .values.reduce(0, +)
+            let totalDistractions = participantDistractionCounts.values.reduce(0, +)
 
             let participantAnalytics: [ParticipantAnalytics] = participants.map { participant in
                 let count = participantDistractionCounts[participant.id] ?? 0
