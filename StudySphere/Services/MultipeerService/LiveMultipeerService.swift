@@ -314,6 +314,7 @@ final class LiveMultipeerService: MultipeerService {
     // MARK: - Sending Messages
 
     func send(_ message: SessionMessage, to peers: [MCPeerID], reliable: Bool) throws {
+        logger.trace("\(#function): Sending \(String(describing: message)) to peers \(peers) (reliable: \(reliable))")
         guard let session = _session else {
             throw MultipeerServiceError.invalidState
         }
@@ -322,6 +323,7 @@ final class LiveMultipeerService: MultipeerService {
     }
 
     func sendToAll(_ message: SessionMessage, reliable: Bool) throws {
+        logger.trace("\(#function): Sending \(String(describing: message)) to all peers (reliable: \(reliable))")
         guard let session = _session else {
             throw MultipeerServiceError.invalidState
         }
@@ -586,6 +588,7 @@ final class LiveMultipeerService: MultipeerService {
                 parent.logger.warning("Failed to decode message from \(peerID): \(error)")
                 return
             }
+//            parent.logger.trace("\(#function): Message \(String(describing: message)) received from \(peerID)")
             Task { @MainActor [parent] in
                 parent?.messageHandler?(peerID, message)
             }
