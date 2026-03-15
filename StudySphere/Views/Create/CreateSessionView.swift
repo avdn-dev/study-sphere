@@ -1,5 +1,6 @@
 import SwiftUI
 import VISOR
+import FamilyControls
 
 @LazyViewModel(CreateSessionViewModel.self)
 struct CreateSessionView: View {
@@ -106,6 +107,22 @@ struct CreateSessionView: View {
       }
       
       if isScreenTimeAuthorized {
+        let apps = viewModel.state.blockedApps.applications.count
+        let cats = viewModel.state.blockedApps.categories.count
+        let domains = viewModel.state.blockedApps.webDomains.count
+        let total = apps + cats + domains
+
+        VStack(alignment: .leading, spacing: 12) {
+          Text("Total \(total == cats ? "blocked categories: \(total)" : "blocked \(total) items")")
+            .font(.subheadline.weight(.semibold))
+          Group {
+            Text("Categories: \(cats)")
+          }
+          .font(.caption)
+          .foregroundStyle(.secondary)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+
         Button {
           Task { await viewModel.handle(.showAppSelection) }
         } label: {
