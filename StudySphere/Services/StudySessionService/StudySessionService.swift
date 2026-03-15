@@ -98,6 +98,8 @@ final class LiveStudySessionService: StudySessionService {
     /// Key used for the peer's NI session with the leader (peer side only)
     private var leaderNIKey: String?
 
+    /// Per-participant distraction count for the current session (for history entry)
+    private var participantDistractionCounts: [UUID: Int] = [:]
     /// The current leader's participant UUID (tracked on peer side for migration)
     private var leaderParticipantID: UUID?
 
@@ -208,6 +210,45 @@ final class LiveStudySessionService: StudySessionService {
             logger.error("Failed to broadcast session end: \(error)")
         }
 
+        // Persist session history entry before clearing state (leader only)
+        if let session = activeSession {
+            let startDate = sessionStartDate ?? endDate
+            let durationSeconds = max(0, endDate.timeIntervalSince(startDate))
+            let totalDistractions = 
+          .values.reduce(0, +)
+
+            let participantAnalytics: [ParticipantAnalytics] = participants.map { participant in
+                let count = participantDistractionCounts[participant.id] ?? 0
+                let focusScore = max(0, 1 - Double(count) * 0.1)
+                return ParticipantAnalytics(
+                    id: participant.id,
+                    name: participant.name,
+                    focusScore: focusScore,
+                    focusDurationSeconds: durationSeconds,
+                    distractionCount: count
+                )
+            }
+
+            let sessionFocusScore: Double = {
+                if participants.isEmpty { return 1 }
+                let total = Double(participants.count)
+                let avg = participantAnalytics.isEmpty ? 1 : participantAnalytics.reduce(0.0) { $0 + $1.focusScore } / Double(participantAnalytics.count)
+                return min(1, max(0, avg))
+            }()
+
+            let entry = SessionHistoryEntry(
+                id: UUID(),
+                sessionName: session.settings.sessionName,
+                date: endDate,
+                durationSeconds: durationSeconds,
+                participantCount: participants.count,
+                distractionCount: totalDistractions,
+                focusScore: sessionFocusScore,
+                participantAnalytics: participantAnalytics
+            )
+            profileService.addHistoryEntry(entry)
+        }
+
         cleanup()
         logger.info("Session ended")
     }
@@ -303,6 +344,8 @@ final class LiveStudySessionService: StudySessionService {
         if let index = participants.firstIndex(where: { $0.id == profile.id }) {
             participants[index].status = status
         }
+
+        participantDistractionCounts[profile.id, default: 0] += 1
 
         // Broadcast to all peers
         let message = SessionMessage.distractionBroadcast(
@@ -608,6 +651,8 @@ final class LiveStudySessionService: StudySessionService {
             if let index = participants.firstIndex(where: { $0.id == broadcast.participantID }) {
                 participants[index].status = broadcast.status
             }
+
+            participantDistractionCounts[broadcast.participantID, default: 0] += 1
 
             // If leader, re-broadcast to other peers (with deduplication)
             if isLeader {
@@ -1198,6 +1243,7 @@ final class LiveStudySessionService: StudySessionService {
         positionSequence = 0
         lastPositionSequence = 0
         recentBroadcastIDs.removeAll()
+        participantDistractionCounts.removeAll()
         phase = .ended
     }
 }
