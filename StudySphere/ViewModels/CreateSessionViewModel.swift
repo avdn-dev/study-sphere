@@ -22,7 +22,7 @@ final class CreateSessionViewModel {
         @Bound(\CreateSessionViewModel.screenTimeService) var blockedApps: FamilyActivitySelection = .init()
         var sessionName = ""
         var radiusMeters: Double = 5.0
-        var requireStillness = false
+        var requireStillness = true
         var alertSound: AlertSound = .carAlarm
         var isCreating = false
     }
