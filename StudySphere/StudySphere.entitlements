@@ -4,9 +4,7 @@
 <dict>
 	<key>com.apple.developer.family-controls</key>
 	<true/>
-	<key>com.apple.developer.nearby-interaction.allow-background</key>
-	<true/>
-	<key>com.apple.security.application-groups</key>
+<key>com.apple.security.application-groups</key>
 	<array>
 		<string>group.studio.cgc.StudySphere.sharedData</string>
 	</array>

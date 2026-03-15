@@ -13,7 +13,8 @@ struct FocusView: View {
             VStack(spacing: 16) {
                 Image(systemName: "brain.head.profile")
                     .font(.system(size: 64))
-                    .foregroundStyle(.white.opacity(0.8))
+                    .foregroundStyle(.white)
+                    .symbolEffect(.breathe.pulse.byLayer, options: .repeat(.continuous))
 
                 Text("Ready to Focus?")
                     .font(.title)
@@ -34,7 +35,7 @@ struct FocusView: View {
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 14)
                 }
-                .buttonStyle(.borderedProminent)
+                .glassButton()
                 .tint(.blue)
 
                 HStack {
@@ -57,7 +58,7 @@ struct FocusView: View {
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 14)
                 }
-                .buttonStyle(.borderedProminent)
+                .glassButton()
                 .tint(.green)
             }
             .padding(.horizontal, 32)
@@ -85,6 +86,7 @@ struct FocusView: View {
                 }
                 .accessibilityLabel("Profile")
             }
+            .hideGlassBackground()
         }
     }
 }

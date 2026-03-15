@@ -56,6 +56,14 @@ struct ProfileView: View {
                 Button("Clear History", role: .destructive) {
                   showClearConfirmation = true
                 }
+                .glassButton()
+                .confirmationDialog("Clear all session history?", isPresented: $showClearConfirmation, titleVisibility: .visible) {
+                  Button("Clear History", role: .destructive) {
+                    Task { await viewModel.handle(.clearHistory) }
+                  }
+                } message: {
+                    Text("This action cannot be undone.")
+                }
               }
             }
         }
@@ -69,13 +77,6 @@ struct ProfileView: View {
               Text("Edit")
             }
           }
-        }
-        .confirmationDialog("Clear all session history?", isPresented: $showClearConfirmation, titleVisibility: .visible) {
-          Button("Clear History", role: .destructive) {
-            Task { await viewModel.handle(.clearHistory) }
-          }
-        } message: {
-            Text("This action cannot be undone.")
         }
         .navigationDestination(for: ProfileRoute.self) { route in
           if route == .edit {

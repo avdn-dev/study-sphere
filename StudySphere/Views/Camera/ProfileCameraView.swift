@@ -45,6 +45,7 @@ struct ProfileCameraView: View {
             .foregroundStyle(.white)
             .frame(width: 44, height: 44)
         }
+        .glassButton(prominent: false)
 
         Spacer()
 
@@ -68,6 +69,7 @@ struct ProfileCameraView: View {
             .foregroundStyle(.white)
             .frame(width: 44, height: 44)
         }
+        .glassButton(prominent: false)
       }
       .padding(.horizontal)
 
@@ -140,13 +142,13 @@ struct ProfileCameraView: View {
       Button("Open Settings") {
         Task { await viewModel.handle(.openSettings) }
       }
-      .buttonStyle(.borderedProminent)
+      .glassButton()
       .padding(.top, 8)
 
       Button("Cancel") {
         onDismiss()
       }
-      .foregroundStyle(.white)
+      .glassButton(prominent: false)
     }
   }
 

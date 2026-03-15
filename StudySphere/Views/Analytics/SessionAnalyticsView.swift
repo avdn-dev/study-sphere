@@ -212,7 +212,7 @@ struct SessionAnalyticsView: View {
                         .font(.subheadline.bold())
                         .frame(maxWidth: .infinity)
                 }
-                .buttonStyle(.borderedProminent)
+                .glassButton()
                 .controlSize(.regular)
             }
             .padding(16)

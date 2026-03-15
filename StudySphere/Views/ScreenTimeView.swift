@@ -21,6 +21,7 @@ struct ScreenTimeView: View {
                 await viewModel.handle(.openBlockedAppsPicker)
             }
         }
+        .glassButton()
         .familyActivityPicker(isPresented: $viewModel.state.isBlockedAppPickerPresented, selection: .init(get: {
             viewModel.state.blockedApps
         }, set: {
@@ -32,5 +33,6 @@ struct ScreenTimeView: View {
         Button("Stop blocking") {
             viewModel.screenTimeService.removeShields()
         }
+        .glassButton()
     }
 }
