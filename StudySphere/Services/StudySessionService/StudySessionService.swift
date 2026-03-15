@@ -100,7 +100,10 @@ final class LiveStudySessionService: StudySessionService {
     /// Leader migration state
     private var leaderReconnectTimer: Task<Void, Never>?
     private var leaderDiscoveryTask: Task<Void, Never>?
+    private var peerReconnectionTimer: Task<Void, Never>?
     private static let leaderGracePeriodSeconds: TimeInterval = 30
+    /// Shorter timeout for peers to reconnect after migration in star topology
+    private static let peerReconnectionSeconds: TimeInterval = 10
 
     init(
         multipeerService: any MultipeerService,
@@ -443,6 +446,12 @@ final class LiveStudySessionService: StudySessionService {
 
         // If this is the first peer rejoining during migration, transition phase
         if phase == .leaderReconnecting {
+            // A peer showed up — cancel the solo fallback timer
+            peerReconnectionTimer?.cancel()
+            peerReconnectionTimer = nil
+            leaderReconnectTimer?.cancel()
+            leaderReconnectTimer = nil
+
             if activeSession?.isActive == true {
                 phase = .active
                 startPositionBroadcastLoop()
@@ -781,28 +790,61 @@ final class LiveStudySessionService: StudySessionService {
 
             // If no other participants remain, transition immediately — no one to wait for
             if otherParticipants.isEmpty {
-                leaderReconnectTimer?.cancel()
-                leaderReconnectTimer = nil
-                if activeSession?.isActive == true {
-                    phase = .active
-                    startPositionBroadcastLoop()
-                } else {
-                    phase = .hosting
-                }
-                logger.info("Solo after migration, transitioned directly")
+                transitionToSoloLeader()
                 return
             }
+
+            // In star topology, other peers may also be gone. Start a shorter
+            // timer — if no one reconnects, drop them and go solo.
+            startPeerReconnectionTimer()
         } else {
-            waitForNewLeader()
+            // Wait for elected leader, but with fallback: if they don't appear
+            // within the reconnection window, try becoming leader ourselves.
+            waitForNewLeader(fallbackAfter: Self.peerReconnectionSeconds)
         }
 
-        // Start grace period timer
+        // Start overall grace period timer
         leaderReconnectTimer?.cancel()
         leaderReconnectTimer = Task { [weak self] in
             try? await Task.sleep(for: .seconds(Self.leaderGracePeriodSeconds))
             guard !Task.isCancelled else { return }
             self?.leaderGracePeriodExpired()
         }
+    }
+
+    /// When elected as new leader, give other peers a window to reconnect.
+    /// If none do, they're likely gone — transition to solo.
+    private func startPeerReconnectionTimer() {
+        peerReconnectionTimer?.cancel()
+        peerReconnectionTimer = Task { [weak self] in
+            try? await Task.sleep(for: .seconds(Self.peerReconnectionSeconds))
+            guard !Task.isCancelled else { return }
+            guard let self else { return }
+            guard self.phase == .leaderReconnecting && self.isLeader else { return }
+
+            // No peers reconnected in time — remove them and go solo
+            guard let profile = self.profileService.profile else { return }
+            self.participants.removeAll { $0.id != profile.id }
+            self.transitionToSoloLeader()
+        }
+    }
+
+    /// Transition from .leaderReconnecting to the appropriate solo phase
+    private func transitionToSoloLeader() {
+        leaderReconnectTimer?.cancel()
+        leaderReconnectTimer = nil
+        peerReconnectionTimer?.cancel()
+        peerReconnectionTimer = nil
+        leaderDiscoveryTask?.cancel()
+        leaderDiscoveryTask = nil
+
+        if activeSession?.isActive == true {
+            phase = .active
+            startPositionBroadcastLoop()
+        } else {
+            phase = .hosting
+        }
+        logger.info("Solo after migration, transitioned directly")
     }
 
     private func becomeNewLeader() {
@@ -840,7 +882,9 @@ final class LiveStudySessionService: StudySessionService {
         // Position broadcast will start when the first peer reconnects (in handleRejoin)
     }
 
-    private func waitForNewLeader() {
+    /// Browse for the elected leader. If they don't appear within `fallbackAfter`
+    /// seconds, assume they're dead and try becoming leader ourselves.
+    private func waitForNewLeader(fallbackAfter: TimeInterval) {
         guard let session = activeSession,
               let profile = profileService.profile else {
             cleanup()
@@ -861,12 +905,15 @@ final class LiveStudySessionService: StudySessionService {
         // Start polling for the room with matching session ID
         leaderDiscoveryTask?.cancel()
         leaderDiscoveryTask = Task { [weak self] in
+            let deadline = Date().addingTimeInterval(fallbackAfter)
+
             while !Task.isCancelled {
                 try? await Task.sleep(for: .seconds(1))
                 guard !Task.isCancelled else { break }
                 guard let self else { break }
 
                 guard case .success(let rooms) = self.multipeerService.discoveredRooms else {
+                    if Date() >= deadline { break }
                     continue
                 }
 
@@ -874,9 +921,21 @@ final class LiveStudySessionService: StudySessionService {
                 if let (_, roomInfo) = rooms.first(where: { $0.value.sessionID == session.id }) {
                     self.logger.info("Found new leader: \(roomInfo.displayName)")
                     await self.rejoinNewLeader(room: roomInfo, profile: profile)
-                    break
+                    return
                 }
+
+                if Date() >= deadline { break }
             }
+
+            // Fallback: elected leader never appeared — try becoming leader ourselves
+            guard !Task.isCancelled else { return }
+            guard let self else { return }
+            guard self.phase == .leaderReconnecting else { return }
+
+            self.logger.info("Elected leader not found, escalating to become leader")
+            self.multipeerService.stopLookingForRooms()
+            self.becomeNewLeader()
+            self.startPeerReconnectionTimer()
         }
     }
 
@@ -1018,6 +1077,8 @@ final class LiveStudySessionService: StudySessionService {
         leaderReconnectTimer = nil
         leaderDiscoveryTask?.cancel()
         leaderDiscoveryTask = nil
+        peerReconnectionTimer?.cancel()
+        peerReconnectionTimer = nil
 
         pendingJoinTimers.values.forEach { $0.cancel() }
         pendingJoinTimers.removeAll()
