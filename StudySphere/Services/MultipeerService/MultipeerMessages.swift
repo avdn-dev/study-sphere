@@ -21,6 +21,7 @@ enum SessionMessage: Codable, Sendable {
 
 struct JoinResponse: Codable, Sendable {
     let accepted: Bool
+    let leaderParticipantID: UUID?
     let leaderDiscoveryTokenData: Data?
     let session: StudySession?
     let participants: [Participant]?

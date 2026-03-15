@@ -94,6 +94,9 @@ final class LiveStudySessionService: StudySessionService {
     /// Key used for the peer's NI session with the leader (peer side only)
     private var leaderNIKey: String?
 
+    /// The current leader's participant UUID (tracked on peer side for migration)
+    private var leaderParticipantID: UUID?
+
     /// Leader migration state
     private var leaderReconnectTimer: Task<Void, Never>?
     private var leaderDiscoveryTask: Task<Void, Never>?
@@ -326,7 +329,7 @@ final class LiveStudySessionService: StudySessionService {
             logger.info("Rejecting \(joinRequest.name): session full (\(self.participants.count)/\(session.maxSize))")
             // Send rejection
             let response = SessionMessage.joinResponse(
-                JoinResponse(accepted: false, leaderDiscoveryTokenData: nil, session: nil, participants: nil)
+                JoinResponse(accepted: false, leaderParticipantID: nil, leaderDiscoveryTokenData: nil, session: nil, participants: nil)
             )
             do {
                 try multipeerService.send(response, to: [peerID], reliable: true)
@@ -360,6 +363,7 @@ final class LiveStudySessionService: StudySessionService {
         let response = SessionMessage.joinResponse(
             JoinResponse(
                 accepted: true,
+                leaderParticipantID: profileService.profile?.id,
                 leaderDiscoveryTokenData: leaderTokenData,
                 session: session,
                 participants: participants
@@ -422,6 +426,7 @@ final class LiveStudySessionService: StudySessionService {
         let response = SessionMessage.joinResponse(
             JoinResponse(
                 accepted: true,
+                leaderParticipantID: profileService.profile?.id,
                 leaderDiscoveryTokenData: leaderTokenData,
                 session: activeSession,
                 participants: participants
@@ -467,6 +472,8 @@ final class LiveStudySessionService: StudySessionService {
                 if let newParticipants = response.participants {
                     participants = newParticipants
                 }
+                // Track the leader's participant ID for migration
+                leaderParticipantID = response.leaderParticipantID
 
                 // Run the pre-prepared NI session with the leader's token
                 if let leaderTokenData = response.leaderDiscoveryTokenData,
@@ -574,8 +581,6 @@ final class LiveStudySessionService: StudySessionService {
             // Peer side: leader is gracefully departing
             guard !isLeader else { return }
             logger.info("Leader \(leaving.participantID) is leaving gracefully")
-            // Remove the departing leader from participants
-            participants.removeAll { $0.id == leaving.participantID }
             enterLeaderMigrationState(departedLeaderID: leaving.participantID)
         }
     }
@@ -676,7 +681,7 @@ final class LiveStudySessionService: StudySessionService {
             // Leader disconnect on peer side — enter migration instead of cleanup
             if !isLeader && phase != .idle && phase != .ended && phase != .leaderReconnecting {
                 logger.info("Leader disconnected, entering migration state")
-                enterLeaderMigrationState(departedLeaderID: nil)
+                enterLeaderMigrationState(departedLeaderID: leaderParticipantID)
             }
             return
         }
@@ -747,14 +752,18 @@ final class LiveStudySessionService: StudySessionService {
         // Disconnect dead MCSession
         multipeerService.disconnect()
 
+        // Remove the departed leader from participants if known
+        if let departedID = departedLeaderID {
+            participants.removeAll { $0.id == departedID }
+        }
+
         // Determine the new leader: lowest UUID among remaining participants
-        // Exclude the departed leader if known
         guard let profile = profileService.profile else {
             cleanup()
             return
         }
         let candidates = participants.filter { p in
-            p.status != .reconnecting && p.id != departedLeaderID
+            p.status != .reconnecting
         }
         guard let electedLeader = candidates.min(by: { $0.id.uuidString < $1.id.uuidString }) else {
             logger.warning("No candidates for leader election, cleaning up")
@@ -764,8 +773,25 @@ final class LiveStudySessionService: StudySessionService {
 
         logger.info("Leader election: elected \(electedLeader.name) (\(electedLeader.id))")
 
+        // Check if there are other participants who need to reconnect
+        let otherParticipants = participants.filter { $0.id != profile.id }
+
         if electedLeader.id == profile.id {
             becomeNewLeader()
+
+            // If no other participants remain, transition immediately — no one to wait for
+            if otherParticipants.isEmpty {
+                leaderReconnectTimer?.cancel()
+                leaderReconnectTimer = nil
+                if activeSession?.isActive == true {
+                    phase = .active
+                    startPositionBroadcastLoop()
+                } else {
+                    phase = .hosting
+                }
+                logger.info("Solo after migration, transitioned directly")
+                return
+            }
         } else {
             waitForNewLeader()
         }
@@ -1017,6 +1043,7 @@ final class LiveStudySessionService: StudySessionService {
         participantIDMap.removeAll()
         pendingJoinResponses.removeAll()
         leaderNIKey = nil
+        leaderParticipantID = nil
         stateVersion = 0
         lastReceivedStateVersion = 0
         positionSequence = 0
