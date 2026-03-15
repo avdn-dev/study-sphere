@@ -16,9 +16,17 @@ final class LiveNearbyInteractionService: NearbyInteractionService {
     private let logger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "StudySphere", category: "NearbyInteraction")
     private var peerSessions: [String: NISession] = [:]
     private var peerDelegates: [String: SessionDelegate] = [:]
-    private var centroidX: Double = 0
-    private var centroidY: Double = 0
-    private var hasCentroid = false
+    private(set) var centroidX: Double = 0
+    private(set) var centroidY: Double = 0
+    private(set) var hasCentroid = false
+
+    // Distance monitoring state
+    private var monitoredPeerID: String?
+    private var monitorBaselineNIDistance: Float = 0
+    private var monitorBaselineCentroidDistance: Double = 0
+    private var monitoringRadius: Double = 0
+    @ObservationIgnored private var onBoundaryCross: (@Sendable (Bool) -> Void)?
+    private var wasOutside: Bool = false
 
     // MARK: - Sessions
 
@@ -89,6 +97,7 @@ final class LiveNearbyInteractionService: NearbyInteractionService {
         peerDirections.removeAll()
         estimatedPositions.removeAll()
         hasCentroid = false
+        stopDistanceMonitoring()
     }
 
     // MARK: - Position
@@ -111,11 +120,50 @@ final class LiveNearbyInteractionService: NearbyInteractionService {
         return sqrt(dx * dx + dy * dy) > radiusMeters
     }
 
+    // MARK: - Distance Monitoring
+
+    func startDistanceMonitoring(
+        for peerID: String,
+        baselineNIDistance: Float,
+        baselineCentroidDistance: Double,
+        radiusMeters: Double,
+        onBoundaryCross: @escaping @Sendable (Bool) -> Void
+    ) {
+        monitoredPeerID = peerID
+        monitorBaselineNIDistance = baselineNIDistance
+        monitorBaselineCentroidDistance = baselineCentroidDistance
+        monitoringRadius = radiusMeters
+        self.onBoundaryCross = onBoundaryCross
+        wasOutside = false
+        logger.info("Started distance monitoring for \(peerID), baseline NI: \(baselineNIDistance)m, baseline centroid: \(baselineCentroidDistance)m, radius: \(radiusMeters)m")
+    }
+
+    func stopDistanceMonitoring() {
+        monitoredPeerID = nil
+        onBoundaryCross = nil
+        logger.info("Stopped distance monitoring")
+    }
+
     // MARK: - Private
+
+    private func checkDistanceMonitoring(peerID: String, newDistance: Float) {
+        guard peerID == monitoredPeerID, let callback = onBoundaryCross else { return }
+
+        let delta = newDistance - monitorBaselineNIDistance
+        let estimatedCentroidDist = monitorBaselineCentroidDistance + Double(delta)
+        let isOutside = estimatedCentroidDist > monitoringRadius
+
+        if isOutside != wasOutside {
+            wasOutside = isOutside
+            logger.info("Distance monitoring boundary crossed: isOutside=\(isOutside), estimatedCentroidDist=\(String(format: "%.2f", estimatedCentroidDist))m")
+            callback(isOutside)
+        }
+    }
 
     private func handleUpdate(peerID: String, result: NINearbyObject) {
         if let distance = result.distance {
             peerDistances[peerID] = distance
+            checkDistanceMonitoring(peerID: peerID, newDistance: distance)
             logger.debug("NI distance update — peer: \(peerID), distance: \(String(format: "%.2f", distance))m")
         } else {
             logger.debug("NI update — peer: \(peerID), distance: nil")

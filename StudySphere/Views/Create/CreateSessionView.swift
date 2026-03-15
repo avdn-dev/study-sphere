@@ -16,7 +16,9 @@ struct CreateSessionView: View {
           radius: $viewModel.state.radiusMeters,
           requireStillness: $viewModel.state.requireStillness
         )
-        
+
+        alertSoundCard(alertSound: $viewModel.state.alertSound)
+
         appsBlockedCard(isScreenTimeAuthorized: viewModel.state.isScreenTimeAuthorized)
         
         createSessionButton(
@@ -78,7 +80,7 @@ struct CreateSessionView: View {
       VStack(alignment: .leading, spacing: 8) {
         Text("Radius: \(Int(radius.wrappedValue)) m")
           .font(.subheadline.weight(.medium))
-        Slider(value: radius, in: 1...20, step: 1)
+        Slider(value: radius, in: 1...5, step: 1)
       }
 
       Toggle("Require Stillness", isOn: requireStillness)
@@ -92,6 +94,49 @@ struct CreateSessionView: View {
     )
   }
   
+    // MARK: - Alert sound card
+
+  private func alertSoundCard(alertSound: Binding<AlertSound>) -> some View {
+    VStack(alignment: .leading, spacing: 16) {
+      HStack(spacing: 8) {
+        Image(systemName: "speaker.wave.2.fill")
+          .font(.title3)
+          .foregroundStyle(.tint)
+        Text("ALERT SOUND")
+          .font(.caption.weight(.semibold))
+          .tracking(2)
+          .foregroundStyle(.secondary)
+      }
+
+      HStack {
+        Picker("Alert Sound", selection: alertSound) {
+          ForEach(AlertSound.allCases, id: \.self) { sound in
+            Text(sound.displayName).tag(sound)
+          }
+        }
+        .pickerStyle(.menu)
+        .onChange(of: alertSound.wrappedValue) { _, newValue in
+          Task { await viewModel.handle(.updateAlertSound(newValue)) }
+        }
+
+        Spacer()
+
+        Button {
+          Task { await viewModel.handle(.previewAlertSound(alertSound.wrappedValue)) }
+        } label: {
+          Image(systemName: "play.circle.fill")
+            .font(.title2)
+        }
+      }
+    }
+    .padding(20)
+    .frame(maxWidth: .infinity, alignment: .leading)
+    .background(
+      RoundedRectangle(cornerRadius: 20, style: .continuous)
+        .fill(.fill.quaternary)
+    )
+  }
+
     // MARK: - Apps blocked card
   
   private func appsBlockedCard(isScreenTimeAuthorized: Bool) -> some View {
