@@ -70,6 +70,10 @@ final class LiveStudySessionService: StudySessionService {
     /// Responses queued until the MC connection is fully established
     private var pendingJoinResponses: [MCPeerID: SessionMessage] = [:]
 
+    /// Peer NI discovery tokens — deferred until MC transport connects to
+    /// avoid radio contention between NI ranging and MC handshake.
+    private var pendingNITokens: [MCPeerID: Data] = [:]
+
     /// Timers that clean up ghost participants if MC connection never completes
     private var pendingJoinTimers: [MCPeerID: Task<Void, Never>] = [:]
 
@@ -319,18 +323,23 @@ final class LiveStudySessionService: StudySessionService {
     // MARK: - Join Request Handling (Leader)
 
     private func handleJoinRequest(peerID: MCPeerID, joinRequest: JoinRequest) -> Bool {
-        guard let session = activeSession else { return false }
+        guard let session = activeSession else {
+            logger.error("[JOIN-1] No active session, rejecting \(joinRequest.name)")
+            return false
+        }
+
+        logger.info("[JOIN-1] Processing join request from \(joinRequest.name) (participantID=\(joinRequest.participantID), mcPeer=\(peerID.displayName))")
 
         // Check if this is a returning participant (within grace period or during migration)
         if disconnectTimers[joinRequest.participantID] != nil ||
            (phase == .leaderReconnecting && participants.contains(where: { $0.id == joinRequest.participantID })) {
+            logger.info("[JOIN-2] Detected rejoin for \(joinRequest.name)")
             return handleRejoin(peerID: peerID, joinRequest: joinRequest)
         }
 
         // Check capacity
         guard participants.count < session.maxSize else {
-            logger.info("Rejecting \(joinRequest.name): session full (\(self.participants.count)/\(session.maxSize))")
-            // Send rejection
+            logger.info("[JOIN-2] Rejecting \(joinRequest.name): session full (\(self.participants.count)/\(session.maxSize))")
             let response = SessionMessage.joinResponse(
                 JoinResponse(accepted: false, leaderParticipantID: nil, leaderDiscoveryTokenData: nil, session: nil, participants: nil)
             )
@@ -343,6 +352,7 @@ final class LiveStudySessionService: StudySessionService {
         }
 
         // Build participant from join request
+        logger.info("[JOIN-2] Capacity OK (\(self.participants.count + 1)/\(session.maxSize)), creating participant")
         let newParticipant = Participant(
             id: joinRequest.participantID,
             peerIDData: joinRequest.peerIDData,
@@ -355,12 +365,17 @@ final class LiveStudySessionService: StudySessionService {
         peerIDMap[joinRequest.participantID] = peerID
         participantIDMap[peerID] = joinRequest.participantID
 
-        // Prepare NI session for this peer and get the session's own token
+        // Prepare NI session to get the leader's discovery token for the
+        // JoinResponse.  Do NOT run the session yet — starting UWB ranging
+        // uses Bluetooth LE and can block MC's peer-to-peer handshake.
         let peerIDString = joinRequest.participantID.uuidString
+        logger.info("[JOIN-3] Preparing NI session for \(joinRequest.name) (key=\(peerIDString))")
         let leaderTokenData = nearbyInteractionService.prepareSession(for: peerIDString)
+        logger.info("[JOIN-4] NI session prepared, leaderToken=\(leaderTokenData != nil ? "\(leaderTokenData!.count) bytes" : "nil")")
 
-        // Configure and run the session with the peer's discovery token
-        nearbyInteractionService.runSession(for: peerIDString, peerDiscoveryTokenData: joinRequest.discoveryTokenData)
+        // Stash the peer's NI token — runSession is deferred to handlePeerConnected
+        pendingNITokens[peerID] = joinRequest.discoveryTokenData
+        logger.info("[JOIN-5] NI token stashed, deferring runSession until MC connects")
 
         // Queue the response — it will be sent once the MC connection is established
         let response = SessionMessage.joinResponse(
@@ -373,10 +388,28 @@ final class LiveStudySessionService: StudySessionService {
             )
         )
         pendingJoinResponses[peerID] = response
+        logger.info("[JOIN-6] JoinResponse queued in pendingJoinResponses for \(peerID.displayName) — waiting for MC transport to connect before sending")
 
-        // Start timeout to clean up if MC connection never completes
-        pendingJoinTimers[peerID] = Task { [weak self] in
-            try? await Task.sleep(for: .seconds(LiveMultipeerService.timeout + 5))
+        // Poll connectedPeers as a fallback — the MCSession delegate
+        // sometimes fails to fire .connected, leaving the JoinResponse
+        // stuck in the queue.  Also acts as the overall timeout.
+        pendingJoinTimers[peerID] = Task { @MainActor [weak self] in
+            let deadline = Date().addingTimeInterval(LiveMultipeerService.timeout + 5)
+            while !Task.isCancelled && Date() < deadline {
+                try? await Task.sleep(for: .milliseconds(500))
+                guard !Task.isCancelled else { return }
+                guard let self else { return }
+
+                // Already delivered by the delegate — nothing to do
+                guard self.pendingJoinResponses[peerID] != nil else { return }
+
+                // Check if peer appeared in connectedPeers without the delegate firing
+                if self.multipeerService.connectedPeers.contains(peerID) {
+                    self.logger.info("[JOIN-POLL] \(peerID.displayName) found in connectedPeers via polling (delegate missed)")
+                    self.handlePeerConnected(peerID)
+                    return
+                }
+            }
             guard !Task.isCancelled else { return }
             self?.cleanupFailedJoin(peerID: peerID)
         }
@@ -386,22 +419,29 @@ final class LiveStudySessionService: StudySessionService {
             phase = .lobby
         }
 
-        logger.info("\(joinRequest.name) joined session (\(self.participants.count)/\(session.maxSize))")
+        logger.info("[JOIN-7] \(joinRequest.name) added to session (\(self.participants.count)/\(session.maxSize)) — returning true to MC invitationHandler")
         return true
     }
 
     private func cleanupFailedJoin(peerID: MCPeerID) {
-        guard pendingJoinResponses.removeValue(forKey: peerID) != nil else { return }
-        guard let participantID = participantIDMap.removeValue(forKey: peerID) else { return }
+        guard pendingJoinResponses.removeValue(forKey: peerID) != nil else {
+            logger.trace("cleanupFailedJoin: no pending response for \(peerID.displayName), already cleaned up")
+            return
+        }
+        guard let participantID = participantIDMap.removeValue(forKey: peerID) else {
+            logger.warning("cleanupFailedJoin: no participantID mapping for \(peerID.displayName)")
+            return
+        }
 
         participants.removeAll { $0.id == participantID }
         nearbyInteractionService.stopSession(for: participantID.uuidString)
         peerIDMap.removeValue(forKey: participantID)
         pendingJoinTimers.removeValue(forKey: peerID)
+        pendingNITokens.removeValue(forKey: peerID)
 
         broadcastStateUpdate()
 
-        logger.info("Cleaned up failed join for \(peerID)")
+        logger.error("MC transport never connected for \(peerID.displayName) (participantID=\(participantID)) — removed from session after timeout")
     }
 
     private func handleRejoin(peerID: MCPeerID, joinRequest: JoinRequest) -> Bool {
@@ -420,10 +460,10 @@ final class LiveStudySessionService: StudySessionService {
             participants[index].status = .focused
         }
 
-        // Re-establish NI session
+        // Prepare NI session (token only) — defer runSession to handlePeerConnected
         let niKey = participantID.uuidString
         let leaderTokenData = nearbyInteractionService.prepareSession(for: niKey)
-        nearbyInteractionService.runSession(for: niKey, peerDiscoveryTokenData: joinRequest.discoveryTokenData)
+        pendingNITokens[peerID] = joinRequest.discoveryTokenData
 
         // Queue rejoin response
         let response = SessionMessage.joinResponse(
@@ -437,9 +477,20 @@ final class LiveStudySessionService: StudySessionService {
         )
         pendingJoinResponses[peerID] = response
 
-        // Start timeout for MC connection
-        pendingJoinTimers[peerID] = Task { [weak self] in
-            try? await Task.sleep(for: .seconds(LiveMultipeerService.timeout + 5))
+        // Poll connectedPeers as fallback + timeout (same as handleJoinRequest)
+        pendingJoinTimers[peerID] = Task { @MainActor [weak self] in
+            let deadline = Date().addingTimeInterval(LiveMultipeerService.timeout + 5)
+            while !Task.isCancelled && Date() < deadline {
+                try? await Task.sleep(for: .milliseconds(500))
+                guard !Task.isCancelled else { return }
+                guard let self else { return }
+                guard self.pendingJoinResponses[peerID] != nil else { return }
+                if self.multipeerService.connectedPeers.contains(peerID) {
+                    self.logger.info("[REJOIN-POLL] \(peerID.displayName) found in connectedPeers via polling")
+                    self.handlePeerConnected(peerID)
+                    return
+                }
+            }
             guard !Task.isCancelled else { return }
             self?.cleanupFailedJoin(peerID: peerID)
         }
@@ -526,7 +577,16 @@ final class LiveStudySessionService: StudySessionService {
                 return
             }
             lastReceivedStateVersion = update.version
-            participants = update.participants
+            // State updates are lightweight (no avatarImageData).
+            // Preserve locally-cached avatar data from the initial JoinResponse.
+            var merged = update.participants
+            for i in merged.indices {
+                if merged[i].avatarImageData == nil,
+                   let existing = participants.first(where: { $0.id == merged[i].id }) {
+                    merged[i].avatarImageData = existing.avatarImageData
+                }
+            }
+            participants = merged
             logger.trace("Participants updated: \(update.participants.count) (v\(update.version))")
 
         case .sessionStarted(let started):
@@ -665,31 +725,50 @@ final class LiveStudySessionService: StudySessionService {
     // MARK: - Peer Connected Handling (Leader)
 
     private func handlePeerConnected(_ peerID: MCPeerID) {
+        logger.info("[CONNECTED-1] MC transport connected for \(peerID.displayName)")
+
         // Cancel the pending join timeout — connection succeeded
         pendingJoinTimers[peerID]?.cancel()
         pendingJoinTimers.removeValue(forKey: peerID)
 
         // Send the queued join response now that the connection is established
         if let response = pendingJoinResponses.removeValue(forKey: peerID) {
+            logger.info("[CONNECTED-2] Sending queued JoinResponse to \(peerID.displayName)")
             do {
                 try multipeerService.send(response, to: [peerID], reliable: true)
+                logger.info("[CONNECTED-3] JoinResponse sent successfully to \(peerID.displayName)")
             } catch {
-                logger.error("Failed to send join response to \(peerID): \(error)")
+                logger.error("[CONNECTED-3] Failed to send join response to \(peerID.displayName): \(error)")
             }
 
             // Broadcast updated participants to existing peers
             broadcastStateUpdate()
+        } else {
+            logger.warning("[CONNECTED-2] No pending join response for \(peerID.displayName) — peer connected without a queued response")
+        }
+
+        // Now that MC transport is stable, start NI ranging.
+        // This was deferred from handleJoinRequest to avoid Bluetooth
+        // contention during the MC peer-to-peer handshake.
+        if let participantID = participantIDMap[peerID],
+           let niTokenData = pendingNITokens.removeValue(forKey: peerID) {
+            let niKey = participantID.uuidString
+            nearbyInteractionService.runSession(for: niKey, peerDiscoveryTokenData: niTokenData)
+            logger.info("[CONNECTED-4] NI session started for \(peerID.displayName)")
         }
     }
 
     // MARK: - Disconnect Handling
 
     private func handlePeerDisconnect(_ peerID: MCPeerID) {
+        logger.info("[DISCONNECT] Peer \(peerID.displayName) disconnected (phase=\(String(describing: self.phase)), isLeader=\(self.isLeader), connectedPeers=\(self.multipeerService.connectedPeers.map(\.displayName)))")
+
         guard let participantID = participantIDMap[peerID] else {
-            logger.warning("Disconnected peer not found in participant map")
+            let hasPendingJoin = pendingJoinResponses[peerID] != nil
+            logger.warning("[DISCONNECT] Peer \(peerID.displayName) not in participantIDMap (hasPendingJoin=\(hasPendingJoin))")
             // Leader disconnect on peer side — enter migration instead of cleanup
             if !isLeader && phase != .idle && phase != .ended && phase != .leaderReconnecting {
-                logger.info("Leader disconnected, entering migration state")
+                logger.info("[DISCONNECT] Leader disconnected, entering migration state")
                 enterLeaderMigrationState(departedLeaderID: leaderParticipantID)
             }
             return
@@ -739,8 +818,16 @@ final class LiveStudySessionService: StudySessionService {
     private func broadcastStateUpdate() {
         guard isLeader else { return }
         stateVersion += 1
+        // Strip avatarImageData to keep state updates lightweight.
+        // Avatars are delivered once in the initial JoinResponse; including
+        // them here can exceed MC's ~100 KB send limit and kill the connection.
+        let lightweight = participants.map { p -> Participant in
+            var copy = p
+            copy.avatarImageData = nil
+            return copy
+        }
         let stateUpdate = SessionMessage.sessionStateUpdate(
-            SessionStateUpdate(version: stateVersion, participants: participants)
+            SessionStateUpdate(version: stateVersion, participants: lightweight)
         )
         do {
             try multipeerService.sendToAll(stateUpdate, reliable: true)
@@ -1103,6 +1190,7 @@ final class LiveStudySessionService: StudySessionService {
         peerIDMap.removeAll()
         participantIDMap.removeAll()
         pendingJoinResponses.removeAll()
+        pendingNITokens.removeAll()
         leaderNIKey = nil
         leaderParticipantID = nil
         stateVersion = 0

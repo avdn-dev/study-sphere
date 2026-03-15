@@ -102,7 +102,11 @@ final class LiveMultipeerService: MultipeerService {
         } else {
             discoveredRooms = nil
         }
-        state = .idle
+        // Only reset to idle if we were actually browsing — don't clobber
+        // .connectedAsParticipant which is set after a successful join.
+        if state == .lookingForRooms {
+            state = .idle
+        }
         _roomsInfo = [:]
     }
 
@@ -110,6 +114,8 @@ final class LiveMultipeerService: MultipeerService {
 
     private var _roomJoinContinuation: CheckedContinuation<Bool, any Error>?
     private var _roomJoinPeerID: MCPeerID?
+
+    private static let maxJoinAttempts = 3
 
     func joinRoom(with info: RoomDiscoveryInfo, joinRequest: JoinRequest) async throws -> Bool {
         switch self.discoveredRooms {
@@ -121,30 +127,44 @@ final class LiveMultipeerService: MultipeerService {
                 logger.error("Already joining a room")
                 throw MultipeerServiceError.alreadyJoiningRoom
             }
-            let session = MCSession(peer: peerID)
-            session.delegate = _delegate // Bug fix: set delegate
-            _session = session
-            _roomJoinPeerID = info.peerID
-            state = .joiningRoom
             let joinRequestData = try Self.encoder.encode(joinRequest)
-            let result = try await withCheckedThrowingContinuation { continuation in
-                logger.trace("Sending join request to room peer: \(info.peerID)")
-                _roomBrowser.invitePeer(
-                    info.peerID,
-                    to: session,
-                    withContext: joinRequestData,
-                    timeout: Self.timeout)
-                _roomJoinContinuation = continuation
-            }
-            guard result else {
-                logger.trace("Join request to room peer \(info.peerID) rejected")
+
+            for attempt in 1...Self.maxJoinAttempts {
+                let session = MCSession(peer: peerID, securityIdentity: nil, encryptionPreference: .none)
+                session.delegate = _delegate
+                _session = session
+                _roomJoinPeerID = info.peerID
+                state = .joiningRoom
+                logger.info("Join attempt \(attempt)/\(Self.maxJoinAttempts) — MCSession (local=\(self.peerID.displayName)) to host \(info.peerID.displayName)")
+
+                let result = try await withCheckedThrowingContinuation { continuation in
+                    _roomBrowser.invitePeer(
+                        info.peerID,
+                        to: session,
+                        withContext: joinRequestData,
+                        timeout: Self.timeout)
+                    _roomJoinContinuation = continuation
+                }
+
+                if result {
+                    logger.info("MC connection to room peer \(info.peerID) established (attempt \(attempt))")
+                    state = .connectedAsParticipant
+                    return true
+                }
+
+                logger.warning("Join attempt \(attempt)/\(Self.maxJoinAttempts) failed — transport never reached connected state")
+                _session?.disconnect()
                 _session = nil
-                state = .idle
-                return false
+
+                if attempt < Self.maxJoinAttempts {
+                    try? await Task.sleep(for: .seconds(1))
+                }
             }
-            logger.trace("Join request to room peer \(info.peerID) accepted")
-            state = .connectedAsParticipant
-            return true
+
+            logger.error("All \(Self.maxJoinAttempts) join attempts to \(info.peerID) failed")
+            _roomJoinPeerID = nil
+            state = .idle
+            return false
         case .failure(let failure):
             throw failure
         case .none:
@@ -230,9 +250,10 @@ final class LiveMultipeerService: MultipeerService {
             break
         }
         self._currentStudySession = session
-        let newSession = MCSession(peer: peerID)
-        newSession.delegate = _delegate // Bug fix: set delegate
+        let newSession = MCSession(peer: peerID, securityIdentity: nil, encryptionPreference: .none)
+        newSession.delegate = _delegate
         self._session = newSession
+        logger.info("Host MCSession created (local=\(self.peerID.displayName), encryption=none)")
         self._roomAdvertiser = MCNearbyServiceAdvertiser(
             peer: peerID,
             discoveryInfo: RoomDiscoveryInfo(
@@ -253,9 +274,10 @@ final class LiveMultipeerService: MultipeerService {
         _roomAdvertiser?.stopAdvertisingPeer()
 
         // Create fresh MC session
-        let newSession = MCSession(peer: peerID)
+        let newSession = MCSession(peer: peerID, securityIdentity: nil, encryptionPreference: .none)
         newSession.delegate = _delegate
         _session = newSession
+        logger.info("Resumed MCSession (local=\(self.peerID.displayName), encryption=none)")
         _currentStudySession = session
 
         // Create fresh advertiser with session ID
@@ -434,18 +456,20 @@ final class LiveMultipeerService: MultipeerService {
                     }
                     do {
                         guard try await joinRequestHandler(mcPeerID, joinRequest) else {
-                            parent.logger.trace("Join request for \(mcPeerID) rejected")
+                            parent.logger.trace("Join request for \(mcPeerID) rejected by handler")
                             invitationHandler(false, nil)
                             return
                         }
-                        parent.logger.trace("Join request for \(mcPeerID) accepted")
-                        invitationHandler(true, parent._session)
+                        let session = parent._session
+                        parent.logger.info("Join request for \(mcPeerID) accepted — calling invitationHandler(true, session=\(session.debugDescription), connectedPeers=\(session?.connectedPeers.count ?? -1))")
+                        invitationHandler(true, session)
+                        parent.logger.info("invitationHandler returned for \(mcPeerID)")
                     } catch {
                         parent.logger.warning("Join request handler for \(mcPeerID) threw an error: \(error)")
                         invitationHandler(false, nil)
                     }
                 default:
-                    parent.logger.error("Invalid state for receiving an invitation: \(parent.state)")
+                  parent.logger.error("Invalid state for receiving an invitation: \(parent.state.rawValue)")
                     invitationHandler(false, nil)
                 }
             }
@@ -456,17 +480,26 @@ final class LiveMultipeerService: MultipeerService {
         func session(_ session: MCSession,
                      peer peerID: MCPeerID,
                      didChange state: MCSessionState) {
+            let stateLabel: String
+            switch state {
+            case .notConnected: stateLabel = "notConnected"
+            case .connecting: stateLabel = "connecting"
+            case .connected: stateLabel = "connected"
+            @unknown default: stateLabel = "unknown(\(state.rawValue))"
+            }
             Task { @MainActor [parent] in
                 guard let parent else { return }
                 guard session === parent._session else {
-                    parent.logger.warning("Session state change for unknown session")
+                    parent.logger.warning("Session state change for stale/unknown session: peer=\(peerID.displayName) state=\(stateLabel)")
                     return
                 }
+
+                parent.logger.info("MCSession state: peer=\(peerID.displayName) → \(stateLabel) (serviceState=\(parent.state.rawValue), connectedPeers=\(session.connectedPeers.map(\.displayName)))")
 
                 switch parent.state {
                 case .joiningRoom:
                     guard let continuation = parent._roomJoinContinuation else {
-                        parent.logger.error("session(_:peer:didChange:): Missing room join continuation")
+                        parent.logger.error("session(_:peer:didChange:): Missing room join continuation (state=\(stateLabel))")
                         return
                     }
                     guard let roomPeerID = parent._roomJoinPeerID else {
@@ -476,16 +509,18 @@ final class LiveMultipeerService: MultipeerService {
                         return
                     }
                     guard peerID == roomPeerID else {
-                        parent.logger.error("Mismatched MCPeerID for room join")
+                        parent.logger.error("Mismatched MCPeerID for room join: expected=\(roomPeerID.displayName) got=\(peerID.displayName)")
                         return
                     }
                     switch state {
                     case .notConnected:
+                        parent.logger.error("Join failed: MC transport to \(peerID.displayName) reached notConnected without ever connecting")
                         continuation.resume(returning: false)
                         parent._roomJoinContinuation = nil
                     case .connecting:
-                        parent.logger.trace("\(peerID) connecting...")
+                        parent.logger.trace("MC transport to \(peerID.displayName) connecting...")
                     case .connected:
+                        parent.logger.info("MC transport to \(peerID.displayName) connected successfully")
                         continuation.resume(returning: true)
                         parent._roomJoinContinuation = nil
                     @unknown default:
@@ -495,20 +530,20 @@ final class LiveMultipeerService: MultipeerService {
                 case .lookingForParticipants, .connectedAsHost:
                     switch state {
                     case .connected:
-                        parent.logger.trace("Peer \(peerID) connected as participant")
+                        parent.logger.info("Peer \(peerID.displayName) MC transport connected — will send queued join response")
                         if parent.state == .lookingForParticipants {
                             parent.state = .connectedAsHost
                         }
                         parent.peerConnectedHandler?(peerID)
                     case .notConnected:
-                        parent.logger.trace("Peer \(peerID) disconnected")
+                        parent.logger.warning("Peer \(peerID.displayName) MC transport disconnected (was \(parent.state.rawValue))")
                         if parent.state == .connectedAsHost,
                            parent._session?.connectedPeers.isEmpty == true {
                             parent.state = .lookingForParticipants
                         }
                         parent.peerDisconnectedHandler?(peerID)
                     case .connecting:
-                        parent.logger.trace("Peer \(peerID) connecting...")
+                        parent.logger.trace("Peer \(peerID.displayName) MC transport connecting...")
                     @unknown default:
                         break
                     }
@@ -516,20 +551,28 @@ final class LiveMultipeerService: MultipeerService {
                 case .connectedAsParticipant:
                     switch state {
                     case .notConnected:
-                        parent.logger.trace("Leader \(peerID) disconnected")
+                        parent.logger.warning("Leader \(peerID.displayName) disconnected")
                         parent.peerDisconnectedHandler?(peerID)
                     case .connecting:
-                        parent.logger.trace("Leader \(peerID) reconnecting...")
+                        parent.logger.trace("Leader \(peerID.displayName) reconnecting...")
                     case .connected:
-                        parent.logger.trace("Leader \(peerID) connected")
+                        parent.logger.info("Leader \(peerID.displayName) connected")
                     @unknown default:
                         break
                     }
 
                 default:
-                    parent.logger.trace("Session state change in state \(parent.state): peer \(peerID) -> \(state.rawValue)")
+                    parent.logger.trace("Session state change in state \(parent.state.rawValue): peer \(peerID.displayName) → \(stateLabel)")
                 }
             }
+        }
+
+        func session(_ session: MCSession,
+                     didReceiveCertificate certificate: [Any]?,
+                     fromPeer peerID: MCPeerID,
+                     certificateHandler: @escaping (Bool) -> Void) {
+            parent.logger.info("Received certificate from \(peerID.displayName), accepting (count=\(certificate?.count ?? 0))")
+            certificateHandler(true)
         }
 
         func session(_ session: MCSession,

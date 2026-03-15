@@ -168,15 +168,11 @@ enum MultipeerServiceError: Swift.Error {
     case invalidState
 }
 
-enum MultipeerServiceState: CustomStringConvertible {
+enum MultipeerServiceState: String {
     case idle
     case lookingForRooms
     case lookingForParticipants
     case joiningRoom
     case connectedAsHost
     case connectedAsParticipant
-    
-    var description: String {
-        String(reflecting: self)
-    }
 }
