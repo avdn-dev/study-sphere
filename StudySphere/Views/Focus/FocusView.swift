@@ -13,7 +13,8 @@ struct FocusView: View {
             VStack(spacing: 16) {
                 Image(systemName: "brain.head.profile")
                     .font(.system(size: 64))
-                    .foregroundStyle(.white.opacity(0.8))
+                    .foregroundStyle(.white)
+                    .symbolEffect(.breathe.pulse.byLayer, options: .repeat(.continuous))
 
                 Text("Ready to Focus?")
                     .font(.title)
