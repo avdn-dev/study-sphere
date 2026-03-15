@@ -2,16 +2,18 @@ import MultipeerConnectivity
 import VISOR
 
 struct RoomDiscoveryInfo: Equatable {
-    
+
     enum Keys {
         static let roomName = "name"
+        static let sessionID = "sid"
     }
-    
+
     let peerID: MCPeerID
     var displayName: String { peerID.displayName }
-    
+
     let roomName: String
-    
+    let sessionID: UUID?
+
     init?(peerID: MCPeerID, discoveryInfo: [String : String]?) {
         guard
             let info = discoveryInfo,
@@ -21,19 +23,29 @@ struct RoomDiscoveryInfo: Equatable {
         }
         self.peerID = peerID
         self.roomName = roomName
+        if let sidString = info[Keys.sessionID] {
+            self.sessionID = UUID(uuidString: sidString)
+        } else {
+            self.sessionID = nil
+        }
     }
-    
-    init(peerID: MCPeerID, roomName: String) {
+
+    init(peerID: MCPeerID, roomName: String, sessionID: UUID? = nil) {
         self.peerID = peerID
         self.roomName = roomName
+        self.sessionID = sessionID
     }
-    
+
     var discoveryInfo: [String : String] {
-        [
+        var info = [
             Keys.roomName: roomName
         ]
+        if let sessionID {
+            info[Keys.sessionID] = sessionID.uuidString
+        }
+        return info
     }
-    
+
 }
 
 struct ParticipantDiscoveryInfo: Equatable {
@@ -118,7 +130,10 @@ protocol MultipeerService: AnyObject {
     // Connection State
     var connectedPeers: [MCPeerID] { get }
     func disconnect()
-    
+
+    // Session Resumption
+    func resumeHosting(for session: StudySession) throws
+
 }
 
 extension MultipeerService {
@@ -153,15 +168,11 @@ enum MultipeerServiceError: Swift.Error {
     case invalidState
 }
 
-enum MultipeerServiceState: CustomStringConvertible {
+enum MultipeerServiceState: String {
     case idle
     case lookingForRooms
     case lookingForParticipants
     case joiningRoom
     case connectedAsHost
     case connectedAsParticipant
-    
-    var description: String {
-        String(reflecting: self)
-    }
 }

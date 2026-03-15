@@ -27,6 +27,19 @@ final class LiveProfileService: ProfileService {
     var peerID: MCPeerID? { profile?.peerID }
     var sessionHistory: [SessionHistoryEntry] = []
 
+    /// Build a display name that is unique per device even when two users
+    /// pick the same profile name (e.g. "Student").  MultipeerConnectivity
+    /// uses the display name for internal peer routing — duplicates cause
+    /// the transport to tear down immediately after connecting.
+    private static func uniquePeerDisplayName(name: String, profileID: UUID) -> String {
+        "\(name)-\(profileID.uuidString.prefix(8))"
+    }
+
+    private static func makePeerIDData(name: String, profileID: UUID) -> Data {
+        let peerID = MCPeerID(displayName: uniquePeerDisplayName(name: name, profileID: profileID))
+        return (try? NSKeyedArchiver.archivedData(withRootObject: peerID, requiringSecureCoding: true)) ?? Data()
+    }
+
     // MARK: - Profile
 
     func load() {
@@ -37,16 +50,14 @@ final class LiveProfileService: ProfileService {
            let decodedProfile = try? decoder.decode(UserProfile.self, from: profileData) {
             profile = decodedProfile
         } else {
+            let id = UUID()
             let defaultName = "Student"
 
-            let newPeerID = MCPeerID(displayName: defaultName)
-            let peerIDData = (try? NSKeyedArchiver.archivedData(withRootObject: newPeerID, requiringSecureCoding: true)) ?? Data()
-
             let defaultProfile = UserProfile(
-              id: UUID(),
+              id: id,
               name: defaultName,
               avatarImageData: nil,
-              peerIDData: peerIDData
+              peerIDData: Self.makePeerIDData(name: defaultName, profileID: id)
             )
 
             profile = defaultProfile
@@ -54,6 +65,25 @@ final class LiveProfileService: ProfileService {
             let encoder = JSONEncoder()
             if let encoded = try? encoder.encode(defaultProfile) {
               defaults.set(encoded, forKey: DefaultsKeys.profile)
+            }
+        }
+
+        // Migrate existing profiles whose MCPeerID still uses a bare name
+        // (no UUID suffix). Duplicate display names cause MC transport failures.
+        if let p = profile {
+            let expected = Self.uniquePeerDisplayName(name: p.name, profileID: p.id)
+            if p.peerID?.displayName != expected {
+                let migrated = UserProfile(
+                    id: p.id,
+                    name: p.name,
+                    avatarImageData: p.avatarImageData,
+                    peerIDData: Self.makePeerIDData(name: p.name, profileID: p.id)
+                )
+                profile = migrated
+                let encoder = JSONEncoder()
+                if let encoded = try? encoder.encode(migrated) {
+                    UserDefaults.standard.set(encoded, forKey: DefaultsKeys.profile)
+                }
             }
         }
 
@@ -134,36 +164,18 @@ final class LiveProfileService: ProfileService {
     #endif
 
     func saveProfile(name: String, avatarImageData: Data?) {
-        let defaults = UserDefaults.standard
+        let id = profile?.id ?? UUID()
+        let updated = UserProfile(
+            id: id,
+            name: name,
+            avatarImageData: avatarImageData,
+            peerIDData: Self.makePeerIDData(name: name, profileID: id)
+        )
+        profile = updated
+
         let encoder = JSONEncoder()
-
-        if let existing = profile {
-            let updated = UserProfile(
-              id: existing.id,
-              name: name,
-              avatarImageData: avatarImageData,
-              peerIDData: existing.peerIDData
-            )
-            profile = updated
-
-            if let encoded = try? encoder.encode(updated) {
-              defaults.set(encoded, forKey: DefaultsKeys.profile)
-            }
-        } else {
-            let peerID = MCPeerID(displayName: name)
-            let peerIDData = (try? NSKeyedArchiver.archivedData(withRootObject: peerID, requiringSecureCoding: true)) ?? Data()
-
-            let newProfile = UserProfile(
-              id: UUID(),
-              name: name,
-              avatarImageData: avatarImageData,
-              peerIDData: peerIDData
-            )
-            profile = newProfile
-
-            if let encoded = try? encoder.encode(newProfile) {
-              defaults.set(encoded, forKey: DefaultsKeys.profile)
-            }
+        if let encoded = try? encoder.encode(updated) {
+            UserDefaults.standard.set(encoded, forKey: DefaultsKeys.profile)
         }
     }
 

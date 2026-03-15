@@ -43,7 +43,9 @@ struct ActiveSessionView: View {
 
             // UI layer
             VStack(spacing: 16) {
-              if viewModel.state.activeSession?.isActive == true {
+                if viewModel.state.phase == .leaderReconnecting {
+                    leaderReconnectingOverlay
+                } else if viewModel.state.activeSession?.isActive == true {
                     liveSessionLayout
                 } else {
                     waitingRoomLayout
@@ -89,7 +91,7 @@ struct ActiveSessionView: View {
 
                 // Timer centered on the field
                 VStack(spacing: 4) {
-                    if let time = viewModel.formattedRemainingTime {
+                    if let time = viewModel.formattedElapsedTime {
                         Text(time)
                             .font(.system(size: 48, weight: .bold, design: .monospaced))
                             .foregroundStyle(viewModel.state.isLocalDeviceDistracted ? .red : .white)
@@ -121,13 +123,23 @@ struct ActiveSessionView: View {
 
             // Controls
             if viewModel.state.isHost {
-                Button("End Session", role: .destructive) {
-                    Task {
-                        await viewModel.handle(.endSession)
-                        dismiss()
+                VStack(spacing: 8) {
+                    Button("Leave Session") {
+                        Task {
+                            await viewModel.handle(.leaveSessionGracefully)
+                            dismiss()
+                        }
                     }
+                    .glassButton()
+
+                    Button("End Session", role: .destructive) {
+                        Task {
+                            await viewModel.handle(.endSession)
+                            dismiss()
+                        }
+                    }
+                    .glassButton()
                 }
-                .buttonStyle(.borderedProminent)
             } else {
                 Button("Leave Session", role: .destructive) {
                     Task {
@@ -135,8 +147,61 @@ struct ActiveSessionView: View {
                         dismiss()
                     }
                 }
-                .buttonStyle(.borderedProminent)
+                .glassButton()
             }
+        }
+    }
+
+    // MARK: - Reconnecting overlay
+
+    private var leaderReconnectingOverlay: some View {
+        VStack(spacing: 24) {
+            Spacer()
+
+            ProgressView()
+                .scaleEffect(1.5)
+                .tint(.white)
+
+            VStack(spacing: 8) {
+                Text("Reconnecting…")
+                    .font(.title2.bold())
+                    .foregroundStyle(.white)
+
+                Text("The host left. Connecting to a new host…")
+                    .font(.subheadline)
+                    .foregroundStyle(.white.opacity(0.7))
+                    .multilineTextAlignment(.center)
+            }
+
+            // Show elapsed time during reconnection
+            if let time = viewModel.formattedElapsedTime {
+                Text(time)
+                    .font(.system(size: 36, weight: .bold, design: .monospaced))
+                    .foregroundStyle(.white.opacity(0.5))
+            }
+
+            // Participant strip
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 12) {
+                    ForEach(viewModel.state.participants) { participant in
+                        ParticipantNodeView(
+                            participant: participant,
+                            status: viewModel.state.participantStatuses[participant.id] ?? participant.status
+                        )
+                    }
+                }
+                .padding(.horizontal)
+            }
+
+            Spacer()
+
+            Button("Leave Session", role: .destructive) {
+                Task {
+                    await viewModel.handle(.leaveSession)
+                    dismiss()
+                }
+            }
+            .glassButton()
         }
     }
 
@@ -241,9 +306,6 @@ struct ActiveSessionView: View {
 
     private var sessionInfoCard: some View {
         let radiusText = "\(Int(activeRadiusMeters)) m"
-        let durationSeconds = viewModel.state.activeSession?.settings.durationSeconds ?? 0
-        let minutes = Int(durationSeconds) / 60
-        let durationText = minutes > 0 ? "\(minutes) min" : "Unlimited"
 
         return HStack(spacing: 16) {
             HStack(spacing: 8) {
@@ -254,21 +316,6 @@ struct ActiveSessionView: View {
                         .font(.caption.weight(.semibold))
                         .foregroundStyle(.secondary)
                     Text(radiusText)
-                        .font(.footnote.monospacedDigit())
-                }
-            }
-
-            Divider()
-                .frame(height: 28)
-
-            HStack(spacing: 8) {
-                Image(systemName: "clock")
-                    .foregroundStyle(.tint)
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("DURATION")
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(.secondary)
-                    Text(durationText)
                         .font(.footnote.monospacedDigit())
                 }
             }
@@ -296,7 +343,7 @@ struct ActiveSessionView: View {
                 }
                 .frame(maxWidth: .infinity)
             }
-            .buttonStyle(.borderedProminent)
+            .glassButton()
             .controlSize(.large)
 
             Text("Participants join from Discover while this lobby is open.")
@@ -336,7 +383,7 @@ struct ActiveSessionView: View {
                     dismiss()
                 }
             }
-            .buttonStyle(.borderedProminent)
+            .glassButton()
             .controlSize(.large)
         }
         .padding(.horizontal)
