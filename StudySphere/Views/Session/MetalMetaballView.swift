@@ -62,6 +62,14 @@ struct MetalMetaballView: UIViewRepresentable {
             focusSum += smoothedStrength
         }
 
+        // Re-center nodes around the centroid of all participants
+        if !nodes.isEmpty {
+            let centroid = nodes.reduce(SIMD2<Float>.zero) { $0 + $1.position } / Float(nodes.count)
+            for i in nodes.indices {
+                nodes[i].position -= centroid
+            }
+        }
+
         let groupFocus = nodes.isEmpty ? 1.0 : focusSum / Float(nodes.count)
         renderer.updateNodes(nodes, groupFocus: groupFocus, radiusMeters: Float(radiusMeters))
     }

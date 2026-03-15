@@ -398,23 +398,44 @@ struct ActiveSessionView: View {
 
     // MARK: - Coordinate Mapping
 
+    /// Centroid of all participants' positions, used to re-center the visualization.
+    private var participantCentroid: (x: Double, y: Double) {
+        var sumX: Double = 0
+        var sumY: Double = 0
+        var count = 0
+        for participant in viewModel.state.participants {
+            let key = participant.peerIDData.base64EncodedString()
+            if let pos = viewModel.state.estimatedPositions[key] {
+                sumX += pos.x
+                sumY += pos.y
+            } else if let pos = participant.position {
+                sumX += pos.x
+                sumY += pos.y
+            }
+            count += 1
+        }
+        guard count > 0 else { return (0, 0) }
+        return (sumX / Double(count), sumY / Double(count))
+    }
+
     /// Maps world-space meters to the 1:1 avatar square (side = screen width).
     /// Uses the same `worldExtent = radiusMeters * 3.0` as the Metal shader.
     private func avatarPosition(for participant: Participant, viewSize: CGFloat) -> CGPoint {
         let worldExtent = activeRadiusMeters * 3.0
+        let centroid = participantCentroid
         let key = participant.peerIDData.base64EncodedString()
 
         let worldX: Double
         let worldY: Double
         if let pos = viewModel.state.estimatedPositions[key] {
-            worldX = pos.x
-            worldY = pos.y
+            worldX = pos.x - centroid.x
+            worldY = pos.y - centroid.y
         } else if let pos = participant.position {
-            worldX = pos.x
-            worldY = pos.y
+            worldX = pos.x - centroid.x
+            worldY = pos.y - centroid.y
         } else {
-            worldX = 0
-            worldY = 0
+            worldX = -centroid.x
+            worldY = -centroid.y
         }
 
         let x = (worldX / worldExtent + 0.5) * Double(viewSize)
