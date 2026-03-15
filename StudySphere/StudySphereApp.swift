@@ -73,7 +73,8 @@ struct StudySphereApp: App {
         let createSessionViewModelFactory: CreateSessionViewModel.Factory = .routed { router in
             CreateSessionViewModel(
                 router: router,
-                sessionInteractor: sessionInteractor)
+                sessionInteractor: sessionInteractor,
+                screenTimeService: screenTimeService)
         }
         let activeSessionViewModelFactory: ActiveSessionViewModel.Factory = .routed { router in
             ActiveSessionViewModel(
@@ -98,6 +99,8 @@ struct StudySphereApp: App {
         let screenTimeViewModelFactory = ScreenTimeViewModel.Factory {
             ScreenTimeViewModel(screenTimeService: screenTimeService, permissionsService: permissionService)
         }
+      
+        
         let profileCameraViewModelFactory = ProfileCameraViewModel.Factory {
             ProfileCameraViewModel()
         }
