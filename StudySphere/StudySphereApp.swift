@@ -114,9 +114,12 @@ struct StudySphereApp: App {
         _profileService = State(initialValue: profileService)
         _screenTimeViewModelFactory = State(initialValue: screenTimeViewModelFactory)
         _profileCameraViewModelFactory = State(initialValue: profileCameraViewModelFactory)
+        _sessionInteractor = State(initialValue: sessionInteractor)
     }
 
     // MARK: Internal
+
+    @Environment(\.scenePhase) private var scenePhase
 
     var body: some Scene {
         WindowGroup {
@@ -134,6 +137,16 @@ struct StudySphereApp: App {
                 .environment(profileService)
                 .preferredColorScheme(.dark)
                 .task { profileService.load() }
+                .onChange(of: scenePhase) { _, newPhase in
+                    switch newPhase {
+                    case .background:
+                        sessionInteractor.handleAppDidEnterBackground()
+                    case .active:
+                        sessionInteractor.handleAppWillEnterForeground()
+                    default:
+                        break
+                    }
+                }
         }
     }
 
@@ -150,4 +163,5 @@ struct StudySphereApp: App {
     @State private var profileService: LiveProfileService
     @State private var screenTimeViewModelFactory: ScreenTimeViewModel.Factory
     @State private var profileCameraViewModelFactory: ProfileCameraViewModel.Factory
+    @State private var sessionInteractor: LiveSessionInteractor
 }

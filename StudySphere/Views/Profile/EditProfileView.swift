@@ -39,8 +39,17 @@ struct EditProfileView: View {
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 12)
                 }
-                .buttonStyle(.plain)
+                .glassButton()
                 .listRowBackground(Color.clear)
+                .confirmationDialog("Change Photo", isPresented: $showingPhotoOptions) {
+                    Button("Choose from Library") {
+                        showingPhotoPicker = true
+                    }
+                    Button("Take Photo") {
+                        photoFlow = .camera
+                    }
+                    Button("Cancel", role: .cancel) {}
+                }
             }
 
             Section("Name") {
@@ -61,7 +70,7 @@ struct EditProfileView: View {
                         .frame(maxWidth: .infinity)
                         .bold()
                 }
-                .buttonStyle(.borderedProminent)
+                .glassButton()
                 .disabled(
                     editedName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
                     || (!hasNameChange && !hasImageChange)
@@ -80,15 +89,6 @@ struct EditProfileView: View {
         .task {
             await viewModel.handle(.loadProfile)
             editedName = viewModel.state.profile?.name ?? "Student"
-        }
-        .confirmationDialog("Change Photo", isPresented: $showingPhotoOptions) {
-            Button("Choose from Library") {
-                showingPhotoPicker = true
-            }
-            Button("Take Photo") {
-                photoFlow = .camera
-            }
-            Button("Cancel", role: .cancel) {}
         }
         .photosPicker(
             isPresented: $showingPhotoPicker,
