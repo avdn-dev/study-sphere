@@ -25,7 +25,7 @@ struct ActiveSessionView: View {
             )
             .ignoresSafeArea()
 
-            // Dimmed gradient overlay so text stays legible
+            // Dimmed gradient overlay so text stays legible (lobby/reconnecting only)
             Rectangle()
                 .fill(
                     LinearGradient(
@@ -40,6 +40,7 @@ struct ActiveSessionView: View {
                     )
                 )
                 .ignoresSafeArea()
+                .opacity(viewModel.state.activeSession?.isActive == true ? 0 : 1)
 
             // UI layer
             VStack(spacing: 16) {
