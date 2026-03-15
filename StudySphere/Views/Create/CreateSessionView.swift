@@ -13,7 +13,6 @@ struct CreateSessionView: View {
         
         focusCircleCard(
           radius: $viewModel.state.radiusMeters,
-          duration: $viewModel.state.durationSeconds,
           requireStillness: $viewModel.state.requireStillness
         )
         
@@ -62,7 +61,6 @@ struct CreateSessionView: View {
   
   private func focusCircleCard(
     radius: Binding<Double>,
-    duration: Binding<TimeInterval>,
     requireStillness: Binding<Bool>
   ) -> some View {
     VStack(alignment: .leading, spacing: 16) {
@@ -75,21 +73,13 @@ struct CreateSessionView: View {
           .tracking(2)
           .foregroundStyle(.secondary)
       }
-      
+
       VStack(alignment: .leading, spacing: 8) {
         Text("Radius: \(Int(radius.wrappedValue)) m")
           .font(.subheadline.weight(.medium))
         Slider(value: radius, in: 1...20, step: 1)
       }
-      
-      VStack(alignment: .leading, spacing: 8) {
-        let minutes = Int(duration.wrappedValue) / 60
-        let label = minutes > 0 ? "\(minutes) min" : "Unlimited"
-        Text("Duration: \(label)")
-          .font(.subheadline.weight(.medium))
-        Slider(value: duration, in: 0...7200, step: 300)
-      }
-      
+
       Toggle("Require Stillness", isOn: requireStillness)
         .font(.subheadline)
     }

@@ -237,11 +237,43 @@ final class LiveMultipeerService: MultipeerService {
             peer: peerID,
             discoveryInfo: RoomDiscoveryInfo(
                 peerID: peerID,
-                roomName: session.settings.sessionName
+                roomName: session.settings.sessionName,
+                sessionID: session.id
             ).discoveryInfo,
             serviceType: Self.roomHostingServiceType
         )
         logger.trace("\(#function): Session updated successfully")
+    }
+
+    // MARK: - Session Resumption
+
+    func resumeHosting(for session: StudySession) throws {
+        // Tear down old MC objects
+        _session?.disconnect()
+        _roomAdvertiser?.stopAdvertisingPeer()
+
+        // Create fresh MC session
+        let newSession = MCSession(peer: peerID)
+        newSession.delegate = _delegate
+        _session = newSession
+        _currentStudySession = session
+
+        // Create fresh advertiser with session ID
+        let advertiser = MCNearbyServiceAdvertiser(
+            peer: peerID,
+            discoveryInfo: RoomDiscoveryInfo(
+                peerID: peerID,
+                roomName: session.settings.sessionName,
+                sessionID: session.id
+            ).discoveryInfo,
+            serviceType: Self.roomHostingServiceType
+        )
+        advertiser.delegate = _delegate
+        _roomAdvertiser = advertiser
+        advertiser.startAdvertisingPeer()
+
+        state = .lookingForParticipants
+        logger.info("Resumed hosting for session \(session.id)")
     }
 
     // MARK: - Connection Management

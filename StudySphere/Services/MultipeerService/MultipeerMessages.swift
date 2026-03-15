@@ -14,6 +14,7 @@ enum SessionMessage: Codable, Sendable {
     case sessionEnded(SessionEnded)
     case distractionBroadcast(DistractionBroadcast)
     case positionUpdate(PositionUpdate)
+    case leaderLeaving(LeaderLeaving)
 }
 
 // MARK: - Payload Structs
@@ -55,4 +56,8 @@ struct PositionUpdate: Codable, Sendable {
         let x: Float
         let y: Float
     }
+}
+
+struct LeaderLeaving: Codable, Sendable {
+    let participantID: UUID
 }
