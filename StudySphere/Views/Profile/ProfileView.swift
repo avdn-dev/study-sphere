@@ -1,27 +1,6 @@
 import SwiftUI
 import VISOR
 
-// TODO: remove once assets are in the branch
-private extension Color {
-    static let accentPrimary   = Color(hex: "#FFA94D")
-    static let accentSecondary = Color(hex: "#E67E22")
-    static let labelPrimary    = Color(hex: "#F5F5F5")
-    static let labelSecondary  = Color(hex: "#677F8F")
-    static let labelTertiary   = Color(hex: "#94A3B8")
-    static let backgroundPrimary   = Color(hex: "#101C22")
-    static let backgroundSecondary = Color(hex: "#1B2D38")
-
-    init(hex: String) {
-        let hex = hex.trimmingCharacters(in: CharacterSet.alphanumerics.inverted)
-        var int: UInt64 = 0
-        Scanner(string: hex).scanHexInt64(&int)
-        let r = Double((int >> 16) & 0xFF) / 255
-        let g = Double((int >> 8)  & 0xFF) / 255
-        let b = Double( int        & 0xFF) / 255
-        self.init(red: r, green: g, blue: b)
-    }
-}
-
 private enum ProfileRoute: Hashable {
     case edit
 }
@@ -40,9 +19,9 @@ struct ProfileView: View {
 
                 LinearGradient(
                     colors: [
-                        Color.backgroundPrimary.opacity(0.2),
+                        Color.background.opacity(0.2),
                         Color.clear,
-                        Color.backgroundPrimary.opacity(0.2),
+                        Color.background.opacity(0.2)
                     ],
                     startPoint: .top,
                     endPoint: .center
